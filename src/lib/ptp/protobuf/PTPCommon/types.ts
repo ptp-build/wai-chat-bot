@@ -47,6 +47,8 @@ export interface PbAiBot_Type {
   chatGptConfig?: PbChatGpBotConfig_Type;
   enableAi?: boolean;
   botApi?: string;
+  disableClearHistory?: boolean;
+  commandsFromApi?: PbCommands_Type[];
 }
 
 export interface PbAudio_Type {
@@ -101,10 +103,10 @@ export interface PbChatGpBotConfig_Type {
   init_system_content?: string;
   api_key?: string;
   max_history_length?: number;
-  config?: PbChatGptConfig_Type;
+  modelConfig?: PbChatGptModelConfig_Type;
 }
 
-export interface PbChatGptConfig_Type {
+export interface PbChatGptModelConfig_Type {
   model: string;
   temperature: number;
   max_tokens: number;
