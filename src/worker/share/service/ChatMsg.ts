@@ -1,5 +1,4 @@
 import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
-import * as WebSocket from 'ws';
 import {
 	SendBotMsgReq,
 	SendBotMsgRes,
@@ -8,7 +7,8 @@ import {
 } from '../../../lib/ptp/protobuf/PTPMsg';
 import { ERR, PbMsg_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
 import { currentTs, sleep } from '../utils/utils';
-import { AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
+import { AuthLoginReq, AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
+import { AuthSessionType, getSessionInfoFromSign } from './User';
 
 let messageIds: number[] = [];
 export const LOCAL_MESSAGE_MIN_ID = 5e9;
@@ -59,7 +59,10 @@ export default class ChatMsg {
 			return msgId;
 		}
 	}
-	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket) {
+	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket): AuthSessionType {
+		const { sign } = AuthLoginReq.parseMsg(pdu);
+		const res = getSessionInfoFromSign(sign);
+
 		ChatMsg.sendPdu(
 			new AuthLoginRes({
 				err: ERR.NO_ERROR,
@@ -67,6 +70,7 @@ export default class ChatMsg {
 			ws,
 			pdu.getSeqNum()
 		);
+		return res;
 	}
 	static async handleSendBotMsgReq(pdu: Pdu, ws: WebSocket) {
 		const { text, chatId } = SendBotMsgReq.parseMsg(pdu);

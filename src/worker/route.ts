@@ -7,8 +7,17 @@ import {
 	BotBtcChatGptAction,
 	BotBtcCommandsAction,
 } from './controller/BotBtcController';
+import { Environment } from './index';
 
-export async function handleEvent({ request }: { request: Request }) {
+export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
+	if (request.headers.get('upgrade') === 'websocket') {
+		//@ts-ignore
+		const durableObjectId = env.DO_WEBSOCKET.idFromName('/ws');
+		//@ts-ignore
+		const durableObjectStub = env.DO_WEBSOCKET.get(durableObjectId);
+		return durableObjectStub.fetch(request);
+	}
+
 	return await router.handle(request);
 }
 

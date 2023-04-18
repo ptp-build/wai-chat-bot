@@ -6,6 +6,7 @@
 		"outDir": "./dist/server",
 		"strict": true,
 		"sourceMap": true,
+		"types": ["@cloudflare/workers-types"],
 		"typeRoots": ["node_modules/@types"],
 		"allowSyntheticDefaultImports": true,
 	},

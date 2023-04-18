@@ -1,10 +1,22 @@
-name = "wai-worker"
+name = "wai-chat-bot"
 main = "src/worker/index.ts"
 compatibility_date = "2022-05-03"
+compatibility_flags = ["durable_object_alarms"]
+
+logpush = true
 node_compat = true
 
 [dev]
 ip = "localhost"
+
+[durable_objects]
+bindings = [
+    { name = "DO_WEBSOCKET", class_name = "WebSocketDurableObject" },
+]
+
+[[migrations]]
+tag = "v1" # Should be unique for each entry
+new_classes = ["WebSocketDurableObject"] # Array of new classes
 
 [[r2_buckets]]
 # binding 的值 需要跟 [vars] / R2_STORAGE_BINGDING_KEY 一致
@@ -25,6 +37,6 @@ KV_NAMESPACE_BINDING_KEY="DATABASE"
 R2_STORAGE_BINGDING_KEY="STORAGE"
 
 IS_PROD = true
-USER_ID_START = "10000"
+USER_ID_START = "10000000"
 WAI_WORKER_API_TOKEN = ""
 Access_Control_Allow_Origin = "*"
