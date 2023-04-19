@@ -1,29 +1,25 @@
-import { createParser } from '../../../lib/eventsource-parser';
+import { createParser } from 'eventsource-parser';
 
 const OPENAI_URL = 'api.openai.com';
 const DEFAULT_PROTOCOL = 'https';
 const PROTOCOL = DEFAULT_PROTOCOL;
 const BASE_URL = OPENAI_URL;
 
-export async function requestOpenai(req: Request, body?: string) {
-	let apiKey = req.headers.get('token');
-	const openaiPath = req.headers.get('path');
-	console.log('[Proxy]', openaiPath, apiKey?.substring(0, 10));
-
-	return fetch(`${PROTOCOL}://${BASE_URL}/${openaiPath}`, {
+export async function requestOpenAi(method: string, path: string, body?: string, apiKey?: string) {
+	return fetch(`${PROTOCOL}://${BASE_URL}/${path}`, {
 		headers: {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json; charset=utf-8',
 			'Authorization': `Bearer ${apiKey}`,
 		},
-		method: req.method,
-		body: body ? body : req.body,
+		method,
+		body,
 	});
 }
 
-export async function createStream(req: Request, body?: string) {
+export async function createStream(body: string, apiKey: string) {
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
-	const res = await requestOpenai(req, body);
+	const res = await requestOpenAi('POST', 'v1/chat/completions', body, apiKey);
 	return new ReadableStream({
 		async start(controller) {
 			function onParse(event: any) {

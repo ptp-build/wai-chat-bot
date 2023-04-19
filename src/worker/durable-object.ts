@@ -85,7 +85,7 @@ export class WebSocketDurableObject {
 							this.authUserAddressAccountMap &&
 							this.authUserAddressAccountMap.has(authSession.address)
 						) {
-							accountIds = this.authUserAddressAccountMap.get(authSession.address);
+							accountIds = this.authUserAddressAccountMap.get(authSession.address)!;
 						}
 						accountIds.push(accountId);
 						this.authUserAddressAccountMap.set(authSession.address, accountIds);

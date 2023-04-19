@@ -2,12 +2,14 @@ import { ENV } from './env';
 import { SWAGGER_DOC } from './setting';
 import { getCorsOptionsHeader, ResponseJson } from './share/utils/utils';
 import { OpenAPIRouter } from '@cloudflare/itty-router-openapi';
-import {
-	BotBtcAction,
-	BotBtcChatGptAction,
-	BotBtcCommandsAction,
-} from './controller/BotBtcController';
 import { Environment } from './index';
+import {
+	ChatGptAction,
+	ChatGptBillingSubscriptionAction,
+	ChatGptBillingUsageAction,
+	ChatGptCommandsAction,
+} from './controller/ChatGptController';
+import ProtoController from './controller/ProtoController';
 
 export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
 	if (request.headers.get('upgrade') === 'websocket') {
@@ -34,19 +36,16 @@ router.all('*', async (request: Request) => {
 	}
 
 	if (IS_PROD && request.url.includes('/api/')) {
-		if (
-			!WAI_WORKER_API_TOKEN ||
-			request.headers.get('Authorization') !== `Bearer ${WAI_WORKER_API_TOKEN}`
-		) {
-			return ResponseJson({
-				err_msg: 'invalid token',
-			});
-		}
+		const auth = request.headers.get('Authorization');
 	}
 });
 
-router.post('/btc/message', BotBtcAction);
-router.post('/btc/chatGpt', BotBtcChatGptAction);
-router.get('/btc/commands', BotBtcCommandsAction);
+router.post('/api/chatgpt/v1/chat/completions', ChatGptAction);
+router.post('/api/chatgpt/v1/dashboard/billing/subscription', ChatGptBillingSubscriptionAction);
+router.post('/api/chatgpt/v1/dashboard/billing/usage', ChatGptBillingUsageAction);
+router.post('/api/chatgpt/commands', ChatGptCommandsAction);
+
+router.post('/api/proto', ProtoController);
+
 router.original.get('/', request => Response.redirect(`${request.url}docs`, 302));
 router.all('*', () => new Response('Not Found.', { status: 404 }));

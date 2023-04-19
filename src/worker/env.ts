@@ -5,6 +5,7 @@ import Logger from './share/cls/Logger';
 
 export const ENV: {
 	IS_PROD: boolean;
+	OPENAI_API_KEY: string;
 	KV_NAMESPACE_BINDING_KEY: string;
 	R2_STORAGE_BINDING_KEY: string;
 	USER_ID_START: string;
@@ -12,6 +13,7 @@ export const ENV: {
 	Access_Control_Allow_Origin: string;
 } = {
 	IS_PROD: true,
+	OPENAI_API_KEY: '',
 	KV_NAMESPACE_BINDING_KEY: 'DATABASE',
 	R2_STORAGE_BINDING_KEY: 'STORAGE',
 	USER_ID_START: '623415',
