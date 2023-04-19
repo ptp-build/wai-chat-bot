@@ -8,6 +8,29 @@ import { AuthSessionType, genUserId } from '../service/User';
 
 export default class WaiOpenAPIRoute extends OpenAPIRoute {
 	private authSession: AuthSessionType;
+	private getAddressFromSign = true;
+	getAuthSession() {
+		return this.authSession;
+	}
+	checkIfTokenIsInvalid(request: Request) {
+		if (this.getAddressFromSign) {
+			return this.checkTokenIsInvalid(request);
+		}
+		if (ENV.IS_PROD) {
+			const auth = request.headers.get('Authorization');
+			if (!auth) {
+				return WaiOpenAPIRoute.responseError('Authorization required', 400);
+			}
+			if (auth?.indexOf('Bearer ') !== 0) {
+				return WaiOpenAPIRoute.responseError('Authorization invalid', 400);
+			}
+			const token = auth.replace('Bearer ', '');
+			if (ENV.OPENAI_API_KEY && ENV.TOKENS.indexOf(token) === -1) {
+				return WaiOpenAPIRoute.responseError('token invalid', 401);
+			}
+		}
+		return false;
+	}
 	async checkTokenIsInvalid(request: Request) {
 		const auth = request.headers.get('Authorization');
 		if (!auth) {

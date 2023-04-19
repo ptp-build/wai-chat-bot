@@ -9,6 +9,8 @@ import { ERR, PbMsg_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
 import { currentTs, sleep } from '../utils/utils';
 import { AuthLoginReq, AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
 import { AuthSessionType, getSessionInfoFromSign } from './User';
+import { createParser } from 'eventsource-parser';
+import { requestOpenAi } from '../functions/openai';
 
 let messageIds: number[] = [];
 export const LOCAL_MESSAGE_MIN_ID = 5e9;
@@ -59,7 +61,7 @@ export default class ChatMsg {
 			return msgId;
 		}
 	}
-	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket): AuthSessionType {
+	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket): Promise<AuthSessionType> {
 		const { sign } = AuthLoginReq.parseMsg(pdu);
 		const res = getSessionInfoFromSign(sign);
 
@@ -73,15 +75,85 @@ export default class ChatMsg {
 		return res;
 	}
 	static async handleSendBotMsgReq(pdu: Pdu, ws: WebSocket) {
-		const { text, chatId } = SendBotMsgReq.parseMsg(pdu);
-		ChatMsg.sendPdu(
-			new SendBotMsgRes({
-				chatId,
-				text,
-			}).pack(),
-			ws,
-			pdu.getSeqNum()
-		);
+		const { text, chatId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
+		if (chatGpt) {
+			const { messages, apiKey, modelConfig, systemPrompt } = JSON.parse(chatGpt);
+
+			messages.unshift({
+				role: 'system',
+				content: systemPrompt,
+			});
+			messages.forEach(message => {
+				if (message.date !== undefined) {
+					delete message.date;
+				}
+			});
+
+			const encoder = new TextEncoder();
+			const decoder = new TextDecoder();
+			const res = await requestOpenAi(
+				'POST',
+				'v1/chat/completions',
+				JSON.stringify({
+					...modelConfig,
+					messages,
+					stream: true,
+				}),
+				apiKey
+			);
+			let reply = '';
+			new ReadableStream({
+				async start(controller) {
+					function onParse(event: any) {
+						if (event.type === 'event') {
+							const data = event.data;
+							// https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
+							if (data === '[DONE]') {
+								controller.close();
+								return;
+							}
+							try {
+								const json = JSON.parse(data);
+								const text = json.choices[0].delta.content;
+								const queue = encoder.encode(text);
+								if (text) {
+									reply += text;
+									console.log(reply);
+								}
+								controller.enqueue(queue);
+							} catch (e) {
+								controller.error(e);
+							}
+						}
+					}
+
+					const parser = createParser(onParse);
+					for await (const chunk of res.body as any) {
+						const t = decoder.decode(chunk);
+						// console.log(Buffer.from(t).toString());
+						parser.feed(t);
+					}
+				},
+			});
+			//
+			// ChatMsg.sendPdu(
+			// 	new SendBotMsgRes({
+			// 		chatId,
+			// 		text: chatGpt,
+			// 	}).pack(),
+			// 	ws,
+			// 	pdu.getSeqNum()
+			// );
+		} else {
+			ChatMsg.sendPdu(
+				new SendBotMsgRes({
+					chatId,
+					text,
+				}).pack(),
+				ws,
+				pdu.getSeqNum()
+			);
+		}
 	}
 	static async handleUpdateCmdReq(pdu: Pdu, ws: WebSocket) {
 		const { chatId } = UpdateCmdReq.parseMsg(pdu);

@@ -1,7 +1,6 @@
 import CloudFlareKv from './share/db/CloudFlareKv';
 import CloudFlareR2 from './share/storage/CloudFlareR2';
 import LocalStorage from './share/db/LocalStorage';
-import Logger from './share/cls/Logger';
 
 export const ENV: {
 	IS_PROD: boolean;
@@ -11,6 +10,7 @@ export const ENV: {
 	USER_ID_START: string;
 	WAI_WORKER_API_TOKEN: String;
 	Access_Control_Allow_Origin: string;
+	TOKENS: string[];
 } = {
 	IS_PROD: true,
 	OPENAI_API_KEY: '',
@@ -19,6 +19,7 @@ export const ENV: {
 	USER_ID_START: '623415',
 	WAI_WORKER_API_TOKEN: '',
 	Access_Control_Allow_Origin: '*',
+	TOKENS: [],
 };
 
 export let kv: CloudFlareKv;
@@ -31,8 +32,6 @@ export function initEnv(env: Record<string, any>) {
 			ENV[key] = env[key];
 		}
 	}
-	// Logger.setLevel(ENV.IS_PROD ? 'info' : 'debug');
-	Logger.setLevel(ENV.IS_PROD ? 'debug' : 'debug');
 	kv = new CloudFlareKv();
 	kv.init(env[ENV.KV_NAMESPACE_BINDING_KEY]);
 	storage = new CloudFlareR2();

@@ -70,7 +70,7 @@ const Commands = [
 	},
 ];
 
-function getOpenAiApiKey(body: Record<string, any>) {
+function getApiKey(body: Record<string, any>) {
 	let apiKey;
 	if (!body.apiKey) {
 		apiKey = ENV.OPENAI_API_KEY;
@@ -79,23 +79,6 @@ function getOpenAiApiKey(body: Record<string, any>) {
 	}
 	delete body['apiKey'];
 	return apiKey;
-}
-
-function checkTokenIsInvalid(request: Request) {
-	if (ENV.IS_PROD) {
-		const auth = request.headers.get('Authorization');
-		if (!auth) {
-			return WaiOpenAPIRoute.responseError('Authorization required', 400);
-		}
-		if (auth?.indexOf('Bearer ') !== 0) {
-			return WaiOpenAPIRoute.responseError('Authorization invalid', 400);
-		}
-		// const token = auth.replace('Bearer ', '');
-		// if (ENV.TOKENS.indexOf(token) === -1) {
-		// 	return WaiOpenAPIRoute.responseError('token invalid', 401);
-		// }
-	}
-	return false;
 }
 
 export class ChatGptBillingSubscriptionAction extends WaiOpenAPIRoute {
@@ -109,8 +92,13 @@ export class ChatGptBillingSubscriptionAction extends WaiOpenAPIRoute {
 		},
 	};
 	async handle(request: Request, data: Record<string, any>) {
+		const res = this.checkIfTokenIsInvalid(request);
+		if (res) {
+			return res;
+		}
+
 		const { body } = data;
-		const apiKey = getOpenAiApiKey(body);
+		const apiKey = getApiKey(body);
 
 		try {
 			const res = await requestOpenAi(
@@ -147,9 +135,14 @@ export class ChatGptBillingUsageAction extends WaiOpenAPIRoute {
 		},
 	};
 	async handle(request: Request, data: Record<string, any>) {
+		const res = this.checkIfTokenIsInvalid(request);
+
+		if (res) {
+			return res;
+		}
 		const { start_date, end_date } = data;
 		const { body } = data;
-		const apiKey = getOpenAiApiKey(body);
+		const apiKey = getApiKey(body);
 
 		try {
 			const res = await requestOpenAi(
@@ -177,8 +170,13 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 		},
 	};
 	async handle(request: Request, data: Record<string, any>) {
+		const res = this.checkIfTokenIsInvalid(request);
+		if (res) {
+			return res;
+		}
+
 		const { body } = data;
-		const apiKey = getOpenAiApiKey(body);
+		const apiKey = getApiKey(body);
 
 		let systemPrompt = '';
 		if (body['systemPrompt']) {
@@ -191,27 +189,12 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 			content: systemPrompt,
 		});
 		try {
-			if (body.stream) {
-				try {
-					const stream = await createStream(JSON.stringify(body), apiKey);
-					return new Response(stream);
-				} catch (e) {
-					const res = await requestOpenAi(
-						'POST',
-						'v1/chat/completions',
-						JSON.stringify(body),
-						apiKey
-					);
-					return WaiOpenAPIRoute.responseJson(await res.json());
-				}
-			} else {
-				const res = await requestOpenAi(
-					'POST',
-					'v1/chat/completions',
-					JSON.stringify(body),
-					apiKey
-				);
-				return WaiOpenAPIRoute.responseJson(await res.json());
+			try {
+				const stream = await createStream(JSON.stringify(body), apiKey);
+				return WaiOpenAPIRoute.responseData(stream);
+			} catch (error) {
+				console.error(error);
+				return WaiOpenAPIRoute.responseError('system error');
 			}
 		} catch (error) {
 			console.error(error);

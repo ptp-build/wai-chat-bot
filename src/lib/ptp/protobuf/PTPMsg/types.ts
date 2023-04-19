@@ -66,7 +66,7 @@ export interface SendBotMsgReq_Type {
   botApi?: string;
   text?: string;
   chatId?: string;
-  chatGpt?: boolean;
+  chatGpt?: string;
 }
 export interface SendBotMsgRes_Type {
   text?: string;
