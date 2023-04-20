@@ -4,6 +4,7 @@ import ChatMsg from './share/service/ChatMsg';
 import { AuthSessionType } from './share/service/User';
 import { OtherNotify } from '../lib/ptp/protobuf/PTPOther';
 import { ERR } from '../lib/ptp/protobuf/PTPCommon/types';
+import { initEnv } from './env';
 
 interface AccountUser {
 	websocket: WebSocket;
@@ -23,7 +24,8 @@ export class WebSocketDurableObject {
 	storage: DurableObjectStorage;
 	dolocation: string;
 
-	constructor(state: DurableObjectState) {
+	constructor(state: DurableObjectState, env) {
+		initEnv(env);
 		// We will put the WebSocket objects for each client into `websockets`
 		this.accounts = new Map();
 		this.pings = new Map();

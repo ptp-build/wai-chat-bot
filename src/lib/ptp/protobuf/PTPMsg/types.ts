@@ -67,10 +67,13 @@ export interface SendBotMsgReq_Type {
   text?: string;
   chatId?: string;
   chatGpt?: string;
+  msgId?: number;
 }
 export interface SendBotMsgRes_Type {
   text?: string;
   chatId?: string;
+  msgId?: number;
+  streamEnd?: boolean;
 }
 export interface SendReq_Type {
   chatId: string;

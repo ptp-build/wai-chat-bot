@@ -59,6 +59,10 @@ export default class ProtoController extends WaiOpenAPIRoute {
 
 	async dispatch(request: Request) {
 		try {
+			const res = await this.checkIfTokenIsInvalid(request);
+			if (res) {
+				return res;
+			}
 			const arrayBuffer = await request.arrayBuffer();
 			let pdu = new Pdu(Buffer.from(arrayBuffer));
 			switch (pdu.getCommandId()) {

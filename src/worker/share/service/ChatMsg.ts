@@ -11,6 +11,7 @@ import { AuthLoginReq, AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
 import { AuthSessionType, getSessionInfoFromSign } from './User';
 import { createParser } from 'eventsource-parser';
 import { requestOpenAi } from '../functions/openai';
+import { ENV } from '../../env';
 
 let messageIds: number[] = [];
 export const LOCAL_MESSAGE_MIN_ID = 5e9;
@@ -62,7 +63,8 @@ export default class ChatMsg {
 		}
 	}
 	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket): Promise<AuthSessionType> {
-		const { sign } = AuthLoginReq.parseMsg(pdu);
+		const { sign, clientInfo } = AuthLoginReq.parseMsg(pdu);
+		console.log('[clientInfo]', clientInfo);
 		const res = getSessionInfoFromSign(sign);
 
 		ChatMsg.sendPdu(
@@ -75,10 +77,9 @@ export default class ChatMsg {
 		return res;
 	}
 	static async handleSendBotMsgReq(pdu: Pdu, ws: WebSocket) {
-		const { text, chatId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
+		let { text, chatId, msgId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
 		if (chatGpt) {
-			const { messages, apiKey, modelConfig, systemPrompt } = JSON.parse(chatGpt);
-
+			let { messages, apiKey, modelConfig, systemPrompt } = JSON.parse(chatGpt);
 			messages.unshift({
 				role: 'system',
 				content: systemPrompt,
@@ -88,20 +89,21 @@ export default class ChatMsg {
 					delete message.date;
 				}
 			});
-
+			const body = JSON.stringify({
+				...modelConfig,
+				messages,
+				stream: true,
+			});
 			const encoder = new TextEncoder();
 			const decoder = new TextDecoder();
-			const res = await requestOpenAi(
-				'POST',
-				'v1/chat/completions',
-				JSON.stringify({
-					...modelConfig,
-					messages,
-					stream: true,
-				}),
-				apiKey
-			);
+			if (!apiKey) {
+				apiKey = ENV.OPENAI_API_KEY;
+			}
+			const res = await requestOpenAi('POST', 'v1/chat/completions', body, apiKey);
 			let reply = '';
+			if (!msgId) {
+				msgId = await ChatMsg.genMessageId();
+			}
 			new ReadableStream({
 				async start(controller) {
 					function onParse(event: any) {
@@ -109,7 +111,18 @@ export default class ChatMsg {
 							const data = event.data;
 							// https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
 							if (data === '[DONE]') {
+								console.error('[handleSendBotMsgReq]', data);
 								controller.close();
+								ChatMsg.sendPdu(
+									new SendBotMsgRes({
+										msgId,
+										chatId,
+										text: reply,
+										streamEnd: true,
+									}).pack(),
+									ws,
+									pdu.getSeqNum()
+								);
 								return;
 							}
 							try {
@@ -119,31 +132,58 @@ export default class ChatMsg {
 								if (text) {
 									reply += text;
 									console.log(reply);
+									ChatMsg.sendPdu(
+										new SendBotMsgRes({
+											msgId,
+											chatId,
+											text: reply,
+										}).pack(),
+										ws,
+										pdu.getSeqNum()
+									);
 								}
 								controller.enqueue(queue);
 							} catch (e) {
+								console.error('[handleSendBotMsgReq] error', e);
 								controller.error(e);
 							}
 						}
 					}
+					let parser;
 
-					const parser = createParser(onParse);
 					for await (const chunk of res.body as any) {
-						const t = decoder.decode(chunk);
-						// console.log(Buffer.from(t).toString());
-						parser.feed(t);
+						const chunkDecode = decoder.decode(chunk);
+						if (chunkDecode) {
+							const chunkDecodeStr = Buffer.from(chunkDecode).toString();
+							if (
+								chunkDecodeStr.indexOf('{') === 0 &&
+								chunkDecodeStr.indexOf('"error": {') > 0
+							) {
+								const chunkDecodeJson = JSON.parse(chunkDecodeStr);
+								if (chunkDecodeJson.error) {
+									console.error('[error]', chunkDecodeJson.error.message);
+									ChatMsg.sendPdu(
+										new SendBotMsgRes({
+											chatId,
+											msgId,
+											text: chunkDecodeJson.error.message,
+										}).pack(),
+										ws,
+										pdu.getSeqNum()
+									);
+									return;
+								}
+							}
+						}
+
+						if (!parser) {
+							parser = createParser(onParse);
+						}
+						// console.log(Buffer.from(chunkDecode).toString());
+						parser.feed(chunkDecode);
 					}
 				},
 			});
-			//
-			// ChatMsg.sendPdu(
-			// 	new SendBotMsgRes({
-			// 		chatId,
-			// 		text: chatGpt,
-			// 	}).pack(),
-			// 	ws,
-			// 	pdu.getSeqNum()
-			// );
 		} else {
 			ChatMsg.sendPdu(
 				new SendBotMsgRes({

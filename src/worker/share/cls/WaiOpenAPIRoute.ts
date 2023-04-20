@@ -12,9 +12,9 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
 	getAuthSession() {
 		return this.authSession;
 	}
-	checkIfTokenIsInvalid(request: Request) {
+	async checkIfTokenIsInvalid(request: Request) {
 		if (this.getAddressFromSign) {
-			return this.checkTokenIsInvalid(request);
+			return await this.checkTokenIsInvalid(request);
 		}
 		if (ENV.IS_PROD) {
 			const auth = request.headers.get('Authorization');
@@ -64,6 +64,7 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
 			ts,
 			clientId,
 		};
+		console.log('[checkTokenIsInvalid]', this.authSession);
 		return false;
 	}
 	jsonResp(params: { data: Record<string, any>; status?: number }): Response {

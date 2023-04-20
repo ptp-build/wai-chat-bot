@@ -41,8 +41,7 @@ router.all('*', async (request: Request) => {
 });
 
 router.post('/api/chatgpt/v1/chat/completions', ChatGptAction);
-router.post('/api/chatgpt/v1/dashboard/billing/subscription', ChatGptBillingSubscriptionAction);
-router.post('/api/chatgpt/v1/dashboard/billing/usage', ChatGptBillingUsageAction);
+router.post('/api/chatgpt/usage', ChatGptBillingUsageAction);
 router.post('/api/chatgpt/commands', ChatGptCommandsAction);
 
 router.post('/api/proto', ProtoController);
