@@ -62,14 +62,14 @@ export default class ChatMsg {
 			return msgId;
 		}
 	}
-	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket): Promise<AuthSessionType> {
+	static async handleAuthLoginReq(pdu: Pdu, ws: WebSocket): Promise<AuthSessionType | undefined> {
 		const { sign, clientInfo } = AuthLoginReq.parseMsg(pdu);
 		console.log('[clientInfo]', clientInfo);
-		const res = getSessionInfoFromSign(sign);
+		const res = await getSessionInfoFromSign(sign);
 
 		ChatMsg.sendPdu(
 			new AuthLoginRes({
-				err: ERR.NO_ERROR,
+				err: res ? ERR.NO_ERROR : ERR.ERR_AUTH_LOGIN,
 			}).pack(),
 			ws,
 			pdu.getSeqNum()

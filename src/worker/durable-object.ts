@@ -78,6 +78,10 @@ export class WebSocketDurableObject {
 				switch (pdu.getCommandId()) {
 					case ActionCommands.CID_AuthLoginReq:
 						const authSession = await ChatMsg.handleAuthLoginReq(pdu, webSocket);
+						if (!authSession) {
+							console.log('CID_AuthLoginReq error');
+							break;
+						}
 						this.accounts.set(accountId, {
 							...this.accounts.get(accountId),
 							authSession,

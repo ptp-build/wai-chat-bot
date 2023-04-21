@@ -17,18 +17,26 @@ export type AuthSessionType = {
 	authUserId: string;
 	ts: number;
 	address: string;
-	clientId: number;
+	clientId?: number;
+	botId?: number;
 };
 
 export async function getSessionInfoFromSign(token) {
 	const res = token.split('_');
-	const sign = res[0];
-	const ts = parseInt(res[1]);
-	const clientId = parseInt(res[3]);
-	const account = new Account(1);
+	let sign, ts, clientId, botId;
+	if (token.startsWith('sk_')) {
+		sign = res[1];
+		ts = parseInt(res[2]);
+		botId = parseInt(res[3]);
+	} else {
+		sign = res[0];
+		ts = parseInt(res[1]);
+		clientId = parseInt(res[3]);
+	}
+	const account = new Account(ts);
 	const { address } = account.recoverAddressAndPubKey(Buffer.from(sign, 'hex'), ts.toString());
 	if (!address) {
-		return WaiOpenAPIRoute.responseError('not auth', 401);
+		return undefined;
 	}
 	Account.setServerKv(kv);
 	let authUserId = await account.getUidFromCacheByAddress(address);
@@ -36,5 +44,6 @@ export async function getSessionInfoFromSign(token) {
 		authUserId = await genUserId();
 		await account.saveUidFromCacheByAddress(address, authUserId);
 	}
-	return { authUserId, ts, address, clientId };
+
+	return { authUserId, ts, address, clientId, botId };
 }
