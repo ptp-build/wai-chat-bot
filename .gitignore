@@ -28,5 +28,6 @@ wrangler-local-state/
 wrangler.toml
 wrangler.prod.toml
 wrangler.http.prod.toml
-wrangler.websokcet.prod.toml
+wrangler.websocket.prod.toml
+wrangler.*.prod.toml
 
