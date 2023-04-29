@@ -3,42 +3,35 @@ import CloudFlareR2 from './share/storage/CloudFlareR2';
 import LocalStorage from './share/db/LocalStorage';
 
 export const ENV: {
-	IS_PROD: boolean;
-	OPENAI_API_KEY: string;
-	KV_NAMESPACE_BINDING_KEY: string;
-	R2_STORAGE_BINDING_KEY: string;
-	USER_ID_START: string;
-	Access_Control_Allow_Origin: string;
-	TOKENS: string[];
+  IS_PROD: boolean;
+  OPENAI_API_KEY: string;
+  KV_NAMESPACE_BINDING_KEY: string;
+  R2_STORAGE_BINDING_KEY: string;
+  SERVER_USER_ID_START: string;
+  Access_Control_Allow_Origin: string;
+  TOKENS: string[];
 } = {
-	IS_PROD: true,
-	OPENAI_API_KEY: '',
-	KV_NAMESPACE_BINDING_KEY: 'DATABASE',
-	R2_STORAGE_BINDING_KEY: 'STORAGE',
-	USER_ID_START: '623415',
-	Access_Control_Allow_Origin: '*',
-	TOKENS: [],
+  IS_PROD: true,
+  OPENAI_API_KEY: '',
+  KV_NAMESPACE_BINDING_KEY: 'DATABASE',
+  R2_STORAGE_BINDING_KEY: 'STORAGE',
+  SERVER_USER_ID_START: '623415',
+  Access_Control_Allow_Origin: '*',
+  TOKENS: [],
 };
 
 export let kv: CloudFlareKv;
 export let storage: CloudFlareR2;
 
 export function initEnv(env: Record<string, any>) {
-	for (const key in ENV) {
-		if (env[key] !== undefined) {
-			// @ts-ignore
-			ENV[key] = env[key];
-		}
-	}
-	kv = new CloudFlareKv();
-	kv.init(env[ENV.KV_NAMESPACE_BINDING_KEY]);
-	storage = new CloudFlareR2();
-	storage.init(env[ENV.R2_STORAGE_BINDING_KEY]);
-}
-
-export function initKvTest() {
-	//@ts-ignore
-	kv = new LocalStorage();
-	//@ts-ignore
-	kv.init();
+  for (const key in ENV) {
+    if (env[key] !== undefined) {
+      // @ts-ignore
+      ENV[key] = env[key];
+    }
+  }
+  kv = new CloudFlareKv();
+  kv.init(env[ENV.KV_NAMESPACE_BINDING_KEY]);
+  storage = new CloudFlareR2();
+  storage.init(env[ENV.R2_STORAGE_BINDING_KEY]);
 }

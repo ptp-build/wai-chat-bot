@@ -1,5 +1,4 @@
 import { initEnv } from './env';
-import { handleEvent } from './route';
 
 export type Environment = {
   DO_WEBSOCKET: DurableObjectNamespace;
@@ -16,8 +15,9 @@ const worker: ExportedHandler<Environment> = {
       //@ts-ignore
       const durableObjectStub = env.DO_WEBSOCKET.get(durableObjectId);
       return durableObjectStub.fetch(request);
+    } else {
+      return new Response('');
     }
-    return await handleEvent({ request, env });
   },
 };
 

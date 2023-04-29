@@ -1,6 +1,4 @@
 import { Pdu } from '../lib/ptp/protobuf/BaseMsg';
-import { ActionCommands, getActionCommandsName } from '../lib/ptp/protobuf/ActionCommands';
-import ChatMsg from './share/service/ChatMsg';
 import { AuthSessionType } from './share/service/User';
 import { OtherNotify } from '../lib/ptp/protobuf/PTPOther';
 import { ERR } from '../lib/ptp/protobuf/PTPCommon/types';

@@ -1,23 +1,12 @@
-import { ENV } from './env';
+import { ENV, initEnv } from './env';
 import { SWAGGER_DOC } from './setting';
 import { getCorsOptionsHeader } from './share/utils/utils';
 import { OpenAPIRouter } from '@cloudflare/itty-router-openapi';
-import { Environment } from './index';
 import {
   ChatGptAction,
   ChatGptBillingUsageAction,
   ChatGptCommandsAction,
 } from './controller/ChatGptController';
-import ProtoController from './controller/ProtoController';
-import {
-  AutoGptCreateTasksAction,
-  AutoGptExecuteTaskAction,
-  AutoGptStartGoalAction,
-} from './controller/AutoGptController';
-
-export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
-  return await router.handle(request);
-}
 
 const router = OpenAPIRouter(SWAGGER_DOC);
 
@@ -40,11 +29,19 @@ router.post('/api/chatgpt/v1/chat/completions', ChatGptAction);
 router.post('/api/chatgpt/usage', ChatGptBillingUsageAction);
 router.post('/api/chatgpt/commands', ChatGptCommandsAction);
 
-router.post('/api/autoGpt/start', AutoGptStartGoalAction);
-router.post('/api/autoGpt/execute', AutoGptExecuteTaskAction);
-router.post('/api/autoGpt/createTasks', AutoGptCreateTasksAction);
-
-router.post('/api/proto', ProtoController);
-
 router.original.get('/', request => Response.redirect(`${request.url}docs`, 302));
 router.all('*', () => new Response('Not Found.', { status: 404 }));
+
+export type Environment = {};
+
+export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
+  return await router.handle(request);
+}
+const worker: ExportedHandler<Environment> = {
+  async fetch(request, env) {
+    initEnv(env);
+    return await handleEvent({ request, env });
+  },
+};
+
+export default worker;

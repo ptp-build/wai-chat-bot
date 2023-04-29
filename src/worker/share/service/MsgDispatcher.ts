@@ -4,7 +4,6 @@ import { AuthSessionType, getSessionInfoFromSign } from './User';
 import { AuthLoginReq, AuthLoginRes, InitAppRes } from '../../../lib/ptp/protobuf/PTPAuth';
 import { SendBotMsgReq, SendBotMsgRes, UpdateCmdReq } from '../../../lib/ptp/protobuf/PTPMsg';
 import { ERR, UserStoreData_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
-import { ChatIdPrompts } from '../../setting';
 import { UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
 import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
 import { kv } from '../../env';
@@ -27,67 +26,23 @@ export default class MsgDispatcher {
     return dispatchers[accountId];
   }
   async initApp() {
-    const topCats = require('../../../assets/jsons/bots-cn.json');
-    const chat = require('../../../assets/jsons/chat.json');
-    const message = require('../../../assets/jsons/message.json');
-    delete message.repliesThreadInfo;
-    chat.id = ChatIdPrompts;
-    chat.avatarHash = '2014496280034643200';
-    chat.photos = [
-      {
-        id: '1361318180747186700',
-        thumbnail: {
-          width: 1836,
-          height: 3192,
-          dataUri:
-            'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAFA3PEY8MlBGQUZaVVBfeMiCeG5uePWvuZHI////////////////////////////////////////////////////2wBDAVVaWnhpeOuCguv/////////////////////////////////////////////////////////////////////////wAARCAAoACgDASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAECA//EACkQAAEEAQIEBQUAAAAAAAAAAAEAAhEhMRJxMkFh8AMiUpHhUXKBktH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A4ADSKuPUr5YwZ+5RrWlnKVrSySNLf2QZgRg+6EXWN1S1vID3yrDJ4QRv1QYcKKI4DSaCINidIF475K6nCbJ69hYbGltCt7VMCRR6iaQal2bnOPjvCyXOJyUkekY6/wBQ2OED8/KDLidJsoh4SiCtcB4YHmnekkSMxuiIGqPqmozMmURBHGiiIg//2Q==',
-        },
-        sizes: [{ width: 1836, height: 3192, type: 'y' }],
-      },
-    ];
-    message.chatId = chat.id;
-    message.senderId = chat.id;
-    delete message.content.photo;
-    delete message.content.text;
-    message.content.voice = {
-      id: '6548697940473841000',
-      duration: 1,
-      waveform: [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14.229166666666666,
-        26.354166666666668, 36.427083333333336, 33.416666666666664, 36, 38.302083333333336,
-        38.96875, 39.604166666666664, 39.625, 39.53125, 37.885416666666664, 37.364583333333336,
-        36.989583333333336, 36.28125, 35.416666666666664, 34.166666666666664, 33.53125, 32.8125,
-        32.625, 32.21875, 31.84375, 31.03125, 30.197916666666668, 30.072916666666668, 31.375,
-        31.46875, 31.041666666666668, 30.927083333333332, 31.09375, 30.96875, 30.65625, 30.75,
-        30.84375, 30.697916666666668, 30.520833333333332, 30.385416666666668, 30.291666666666668,
-        31.03125, 31.854166666666668, 32.15625, 32.625, 32.8125, 32.34375, 32, 31.875,
-      ],
-    };
-    chat.lastMessage = message;
-    chat.isCreator = false;
-
-    // const user:Partial<PbUser_Type> = {
-    //   id:UserIdFirstBot,
-    //   accessHash:"2014496280034643200",
-    //   firstName:"s"
-    // }
     const users = [];
     const chats = [];
     const messages = [];
-    const chatFolders = [
-      // {
-      //   id:FolderIdWai,
-      //   title:FolderTitleWai,
-      //   includedChatIds:[UserIdFirstBot],
-      //   excludedChatIds:[]
-      // }
-    ];
+    // const chatFolders = [
+    //   {
+    //     id:FolderIdWai,
+    //     title:FolderTitleWai,
+    //     includedChatIds:[UserIdFirstBot],
+    //     excludedChatIds:[]
+    //   }
+    // ];
     this.sendPdu(
       new InitAppRes({
         users: JSON.stringify(users),
         chats: JSON.stringify(chats),
         messages: JSON.stringify(messages),
-        chatFolders: JSON.stringify(chatFolders),
+        // chatFolders: JSON.stringify(chatFolders),
       }).pack()
     );
   }
@@ -111,7 +66,7 @@ export default class MsgDispatcher {
   }
   async handleSyncReq(pdu: Pdu) {
     const { userStoreData } = SyncReq.parseMsg(pdu);
-    console.debug(JSON.stringify(userStoreData));
+    // console.debug('userStoreData', this.address, JSON.stringify(userStoreData));
     const authUserId = this.authUserId;
     const userStoreDataStr = await kv.get(`W_U_S_D_${authUserId}`);
     let userStoreDataRes: UserStoreData_Type;
@@ -119,7 +74,9 @@ export default class MsgDispatcher {
     if (userStoreDataStr) {
       const buf = Buffer.from(userStoreDataStr, 'hex');
       userStoreDataRes = UserStoreData.parseMsg(new Pdu(buf));
-      if (userStoreData?.time < userStoreDataRes.time) {
+      // console.debug('userStoreDataRes', this.address, JSON.stringify(userStoreDataRes));
+
+      if (!userStoreData?.time || userStoreData?.time < userStoreDataRes.time) {
         this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
       } else {
         userStoreDataRes = userStoreData!;
@@ -130,16 +87,6 @@ export default class MsgDispatcher {
       userStoreDataRes.time = currentTs1000();
       changed = true;
     }
-    //
-    // if (this.address === '0x06d6783edcb3b16203b4f9377332dbda7dd9bddc') {
-    //   const topCats = require('../../../assets/jsons/bots-cn.json');
-    //   userStoreDataRes.myBots = topCats.bots.map(bot => bot.userId);
-    //   this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
-    //   await kv.put(
-    //     `W_U_S_D_${authUserId}`,
-    //     Buffer.from(new UserStoreData(userStoreDataRes).pack().getPbData()).toString('hex')
-    //   );
-    // }
 
     if (changed) {
       await kv.put(
@@ -273,7 +220,15 @@ export default class MsgDispatcher {
   }
   async handleTopCatsReq(pdu: Pdu) {
     const { time } = TopCatsReq.parseMsg(pdu);
-    const topCats = require('../../../assets/jsons/bots-cn.json');
+    // const topCats = require('../../../assets/jsons/bots-cn.json');
+    // await kv.put('topCats-cn.json', JSON.stringify(topCats));
+    const str = await kv.get('topCats-cn.json');
+    let topCats;
+    if (str) {
+      topCats = JSON.parse(str);
+    } else {
+      return;
+    }
     let payload: any = {};
     if (topCats.time > time) {
       payload = {
