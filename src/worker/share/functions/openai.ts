@@ -1,12 +1,14 @@
 import { createParser } from 'eventsource-parser';
+import { SendBotMsgRes } from '../../../lib/ptp/protobuf/PTPMsg';
 
 const OPENAI_URL = 'api.openai.com';
 const DEFAULT_PROTOCOL = 'https';
 const PROTOCOL = DEFAULT_PROTOCOL;
 const BASE_URL = OPENAI_URL;
 
+export class StreamChatGptError extends Error {}
 export async function requestOpenAi(method: string, path: string, body?: string, apiKey?: string) {
-	console.log('[requestOpenAi]', body);
+	// console.log('[requestOpenAi]', body);
 	if (apiKey) {
 		console.log('[requestOpenAi] apiKey', apiKey.substring(apiKey.length - 4));
 	} else {
@@ -22,13 +24,22 @@ export async function requestOpenAi(method: string, path: string, body?: string,
 	});
 }
 
-export async function createStream(body: string, apiKey: string) {
+export async function createStream(
+	body: string,
+	apiKey: string,
+	chatId?: string,
+	messageId?: number
+) {
 	const encoder = new TextEncoder();
 	const decoder = new TextDecoder();
 	const res = await requestOpenAi('POST', 'v1/chat/completions', body, apiKey);
 	return new ReadableStream({
+		async cancel(reason) {
+			console.error(reason);
+		},
 		async start(controller) {
 			function onParse(event: any) {
+				// console.log(event);
 				if (event.type === 'event') {
 					const data = event.data;
 					// https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
@@ -38,8 +49,7 @@ export async function createStream(body: string, apiKey: string) {
 					}
 					try {
 						const json = JSON.parse(data);
-						const text = json.choices[0].delta.content;
-						const queue = encoder.encode(text);
+						const queue = encoder.encode(json.choices[0].delta.content);
 						controller.enqueue(queue);
 					} catch (e) {
 						controller.error(e);
@@ -49,13 +59,25 @@ export async function createStream(body: string, apiKey: string) {
 
 			const parser = createParser(onParse);
 			for await (const chunk of res.body as any) {
-				parser.feed(decoder.decode(chunk));
+				const chunkDecode = decoder.decode(chunk);
+				if (chunkDecode) {
+					try {
+						const res = JSON.parse(chunkDecode);
+						if (res.error) {
+							const queue = encoder.encode('ERROR:' + JSON.stringify(res.error));
+							controller.enqueue(queue);
+							controller.close();
+						}
+					} catch (e) {
+						parser.feed(chunkDecode);
+					}
+				}
 			}
 		},
 	});
 }
 
-export async function requestUsage(apiKey: string, start_date: string, end_date) {
+export async function requestUsage(apiKey: string, start_date: string, end_date: string) {
 	const [used, subs] = await Promise.all([
 		requestOpenAi(
 			'GET',

@@ -1,7 +1,7 @@
-import { Str, Bool, Query, Int } from '@cloudflare/itty-router-openapi';
+import {Bool, Int, Query, Str} from '@cloudflare/itty-router-openapi';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
-import { createStream, requestOpenAi, requestUsage } from '../share/functions/openai';
-import { ENV } from '../env';
+import {createStream, requestOpenAi, requestUsage} from '../share/functions/openai';
+import {ENV} from '../env';
 
 const Message = {
 	role: new Str({
@@ -21,6 +21,16 @@ const requestBody1 = {
 	}),
 };
 const requestBody = {
+	chatId: new Str({
+		required: false,
+		example: '10001',
+		description: 'chatId',
+	}),
+	msgId: new Str({
+		required: false,
+		example: 1,
+		description: 'msgId',
+	}),
 	apiKey: new Str({
 		example: '',
 		description: 'openAi api_key',
@@ -156,19 +166,28 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 		if (body['systemPrompt']) {
 			systemPrompt = body['systemPrompt'];
 		}
+		const chatId = body.chatId;
+		const msgId = body.msgId;
 		delete body['systemPrompt'];
+		delete body['chatId'];
+		delete body['msgId'];
 
 		body.messages.unshift({
 			role: 'system',
 			content: systemPrompt,
 		});
+		body.messages.forEach(message => {
+			if (message.date) {
+				delete message['date'];
+			}
+		});
 		try {
-			try {
+			if(body.stream){
 				const stream = await createStream(JSON.stringify(body), apiKey);
 				return WaiOpenAPIRoute.responseData(stream);
-			} catch (error) {
-				console.error(error);
-				return WaiOpenAPIRoute.responseError('system error');
+			}else{
+				const res = await requestOpenAi('POST', 'v1/chat/completions', JSON.stringify(body), apiKey);
+				return res;
 			}
 		} catch (error) {
 			console.error(error);

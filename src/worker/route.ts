@@ -1,15 +1,19 @@
 import { ENV } from './env';
 import { SWAGGER_DOC } from './setting';
-import { getCorsOptionsHeader, ResponseJson } from './share/utils/utils';
+import { getCorsOptionsHeader } from './share/utils/utils';
 import { OpenAPIRouter } from '@cloudflare/itty-router-openapi';
 import { Environment } from './index';
 import {
 	ChatGptAction,
-	ChatGptBillingSubscriptionAction,
 	ChatGptBillingUsageAction,
 	ChatGptCommandsAction,
 } from './controller/ChatGptController';
 import ProtoController from './controller/ProtoController';
+import {
+	AutoGptCreateTasksAction,
+	AutoGptExecuteTaskAction,
+	AutoGptStartGoalAction,
+} from './controller/AutoGptController';
 
 export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
 	if (request.headers.get('upgrade') === 'websocket') {
@@ -43,6 +47,10 @@ router.all('*', async (request: Request) => {
 router.post('/api/chatgpt/v1/chat/completions', ChatGptAction);
 router.post('/api/chatgpt/usage', ChatGptBillingUsageAction);
 router.post('/api/chatgpt/commands', ChatGptCommandsAction);
+
+router.post('/api/autoGpt/start', AutoGptStartGoalAction);
+router.post('/api/autoGpt/execute', AutoGptExecuteTaskAction);
+router.post('/api/autoGpt/createTasks', AutoGptCreateTasksAction);
 
 router.post('/api/proto', ProtoController);
 

@@ -8,7 +8,6 @@ export const ENV: {
 	KV_NAMESPACE_BINDING_KEY: string;
 	R2_STORAGE_BINDING_KEY: string;
 	USER_ID_START: string;
-	WAI_WORKER_API_TOKEN: String;
 	Access_Control_Allow_Origin: string;
 	TOKENS: string[];
 } = {
@@ -17,7 +16,6 @@ export const ENV: {
 	KV_NAMESPACE_BINDING_KEY: 'DATABASE',
 	R2_STORAGE_BINDING_KEY: 'STORAGE',
 	USER_ID_START: '623415',
-	WAI_WORKER_API_TOKEN: '',
 	Access_Control_Allow_Origin: '*',
 	TOKENS: [],
 };

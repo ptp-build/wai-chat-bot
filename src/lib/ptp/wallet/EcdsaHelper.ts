@@ -60,7 +60,7 @@ export const bufferToHex = function (buf: Buffer): string {
 
 /**
  * Creates Keccak hash of a Buffer input
- * @param a The input data (Buffer)
+ * @param a The input assets (Buffer)
  * @param bits (number = 256) The Keccak width
  */
 export const keccak = function (a: Buffer, bits: number = 256): Buffer {
@@ -628,7 +628,7 @@ export default class EcdsaHelper {
     }else{
       prefix = Buffer.from(`${PTP_Signed_Message}${data.length}`, 'utf-8');
     }
-    //console.log("getSignMsgData",Buffer.concat([prefix, data]).toString())
+    //console.log("getSignMsgData",Buffer.concat([prefix, assets]).toString())
     return Buffer.concat([prefix, data]);
   }
   sign(message: string) {

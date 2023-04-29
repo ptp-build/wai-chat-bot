@@ -20,7 +20,7 @@ export type AuthSessionType = {
 	clientId: number;
 };
 
-export async function getSessionInfoFromSign(token) {
+export async function getSessionInfoFromSign(token:string) {
 	const res = token.split('_');
 	const sign = res[0];
 	const ts = parseInt(res[1]);
@@ -28,7 +28,7 @@ export async function getSessionInfoFromSign(token) {
 	const account = new Account(1);
 	const { address } = account.recoverAddressAndPubKey(Buffer.from(sign, 'hex'), ts.toString());
 	if (!address) {
-		return WaiOpenAPIRoute.responseError('not auth', 401);
+		return
 	}
 	Account.setServerKv(kv);
 	let authUserId = await account.getUidFromCacheByAddress(address);

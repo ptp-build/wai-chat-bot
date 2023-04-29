@@ -1,0 +1,74 @@
+{
+  "id": 1,
+  "chatId": "1001",
+  "isOutgoing": false,
+  "content": {
+    "photo": {
+      "id": "2014496280034643200",
+      "thumbnail": {
+        "dataUri": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDACgcHiMeGSgjISMtKygwPGRBPDc3PHtYXUlkkYCZlo+AjIqgtObDoKrarYqMyP/L2u71////m8H////6/+b9//j/2wBDASstLTw1PHZBQXb4pYyl+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj/wAARCAAXACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCoEj8hm8whwemaUkKep+mTTPKcxmXA2inbAPp9P/r0mDFLA5G8/maYOD9+nbRjH9P/AK9NKN6D86EQE+HjOWLEDgmipVXcuwgfNxRTL3IQzlSgb5SelOYOc5OB6UUVLHIT592N3vTtr8nd0x3oooIZPDE+5XY8A5oooqio7H//2Q==",
+        "width": 800,
+        "height": 451
+      },
+      "sizes": [
+        {
+          "width": 320,
+          "height": 180,
+          "type": "m"
+        },
+        {
+          "width": 800,
+          "height": 451,
+          "type": "x"
+        },
+        {
+          "width": 1125,
+          "height": 634,
+          "type": "y"
+        }
+      ],
+      "isSpoiler": false
+    },
+    "text": {
+      "text": "厉害"
+    }
+  },
+  "date": 1682312119,
+  "senderId": "1",
+  "views": 486,
+  "forwards": 1,
+  "isFromScheduled": false,
+  "isSilent": false,
+  "isPinned": false,
+  "reactions": {
+    "canSeeList": false,
+    "results": [
+      {
+        "count": 1,
+        "reaction": {
+          "emoticon": "👍"
+        }
+      },
+      {
+        "count": 0,
+        "reaction": {
+          "emoticon": "👎"
+        }
+      }
+    ]
+  },
+  "repliesThreadInfo": {
+    "isComments": true,
+    "threadId": 1231,
+    "chatId": "-1500061208",
+    "originChannelId": "-1268824114",
+    "messagesCount": 2,
+    "lastMessageId": 19345,
+    "recentReplierIds": [
+      "1754319116",
+      "5336172109"
+    ]
+  },
+  "isProtected": false,
+  "isForwardingAllowed": true
+}

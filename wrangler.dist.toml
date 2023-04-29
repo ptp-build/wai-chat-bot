@@ -43,7 +43,6 @@ R2_STORAGE_BINGDING_KEY="STORAGE"
 
 IS_PROD = true
 USER_ID_START = "20000000"
-WAI_WORKER_API_TOKEN = ""
 Access_Control_Allow_Origin = "*"
 # 如果为空，则需要客户端传入apiKey
 OPENAI_API_KEY = ""

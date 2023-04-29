@@ -1,0 +1,70 @@
+{
+  "id": "-1268824114",
+  "type": "chatTypeChannel",
+  "title": "Prompt大全",
+  "lastReadOutboxMessageId": 0,
+  "lastReadInboxMessageId": 0,
+  "unreadCount": 0,
+  "unreadMentionsCount": 0,
+  "unreadReactionsCount": 0,
+  "isMuted": false,
+  "isMin": false,
+  "hasPrivateLink": false,
+  "isSignaturesShown": false,
+  "usernames": [
+    {
+      "username": "prompt",
+      "isActive": true,
+      "isEditable": true
+    }
+  ],
+  "accessHash": "",
+  "hasVideoAvatar": false,
+  "avatarHash": "2014496280034643200",
+  "isVerified": false,
+  "isCallActive": false,
+  "isCallNotEmpty": false,
+  "joinDate": 1681404483,
+  "membersCount": 11124,
+  "isProtected": false,
+  "isCreator": false,
+  "isNotJoined": false,
+  "isJoinToSend": false,
+  "isJoinRequest": false,
+  "isForum": false,
+  "lastMessage": null,
+  "isListed": true,
+  "settings": {
+    "isAutoArchived": false,
+    "canReportSpam": false,
+    "canAddContact": false,
+    "canBlockContact": false
+  },
+  "photos": [
+    {
+      "id": "2014496280034643200",
+      "thumbnail": {
+        "dataUri": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDACgcHiMeGSgjISMtKygwPGRBPDc3PHtYXUlkkYCZlo+AjIqgtObDoKrarYqMyP/L2u71////m8H////6/+b9//j/2wBDASstLTw1PHZBQXb4pYyl+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj/wAARCAAoACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCdAygkA4pjNyPWrJUnPGBVZxiRvas5S0KSAuw7kig5YdsVHKwjjyTz6VF9obrgbRTg2lqDLGFI+bj6GikjdZkDYINFaXJLEkhTgcn06VSe4Y5OBnpVmTpIR1C4FVPKfyixwAQDzWSLIZGXDF+Tjg0Qq07YUrwP4qY0LEbdp5bpmrdlAYmctg44GKrQRNCrImCFHOaKlJFFFxWIXkzGcjANEkgKBM9eKKKlFDWYFkX+FRn/AApEmALD/aoopiAStJuA4AOB70UUVLdhn//Z",
+        "width": 640,
+        "height": 640
+      },
+      "sizes": [
+        {
+          "width": 160,
+          "height": 160,
+          "type": "a"
+        },
+        {
+          "width": 320,
+          "height": 320,
+          "type": "b"
+        },
+        {
+          "width": 640,
+          "height": 640,
+          "type": "c"
+        }
+      ]
+    }
+  ]
+}

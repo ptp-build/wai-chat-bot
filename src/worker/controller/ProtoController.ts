@@ -1,12 +1,7 @@
-import { Pdu } from '../../lib/ptp/protobuf/BaseMsg';
-import { ActionCommands, getActionCommandsName } from '../../lib/ptp/protobuf/ActionCommands';
-import { Download, Upload } from '../share/service/File';
-import {
-	DownloadMsgReq,
-	DownloadMsgRes,
-	UploadMsgReq,
-	UploadMsgRes,
-} from '../../lib/ptp/protobuf/PTPMsg';
+import {Pdu} from '../../lib/ptp/protobuf/BaseMsg';
+import {ActionCommands, getActionCommandsName} from '../../lib/ptp/protobuf/ActionCommands';
+import {Download, Upload} from '../share/service/File';
+import {DownloadMsgReq, DownloadMsgRes, UploadMsgReq, UploadMsgRes,} from '../../lib/ptp/protobuf/PTPMsg';
 import {
 	ERR,
 	MessageStoreRow_Type,
@@ -14,21 +9,20 @@ import {
 	UserStoreData_Type,
 	UserStoreRow_Type,
 } from '../../lib/ptp/protobuf/PTPCommon/types';
-import Account from '../share/Account';
-import { ENV, kv, storage } from '../env';
-import { AuthSessionType, genUserId } from '../share/service/User';
+import {ENV, kv, storage} from '../env';
+import {AuthSessionType} from '../share/service/User';
 import {
 	DownloadUserReq,
 	DownloadUserRes,
-	GenUserIdReq,
 	GenUserIdRes,
 	UploadUserReq,
 	UploadUserRes,
 } from '../../lib/ptp/protobuf/PTPUser';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
-import { SyncReq, SyncRes } from '../../lib/ptp/protobuf/PTPSync';
-import { UserMessageStoreData, UserStoreData } from '../../lib/ptp/protobuf/PTPCommon';
-import { OtherNotify } from '../../lib/ptp/protobuf/PTPOther';
+import {SyncReq, SyncRes} from '../../lib/ptp/protobuf/PTPSync';
+import {UserMessageStoreData, UserStoreData} from '../../lib/ptp/protobuf/PTPCommon';
+import {OtherNotify} from '../../lib/ptp/protobuf/PTPOther';
+import {currentTs1000} from "../share/utils/utils";
 
 export default class ProtoController extends WaiOpenAPIRoute {
 	private authSession: AuthSessionType;
@@ -93,6 +87,8 @@ export default class ProtoController extends WaiOpenAPIRoute {
 					return this.handleUploadMsgReq(Number(authUserId), pdu);
 				case ActionCommands.CID_DownloadMsgReq:
 					return this.handleDownloadMsgReq(Number(authUserId), pdu);
+				case ActionCommands.CID_GenUserIdReq:
+					return this.handleGenUserIdReq(Number(authUserId), pdu);
 				case ActionCommands.CID_UploadReq:
 					return Upload(pdu);
 				default:
@@ -287,8 +283,7 @@ export default class ProtoController extends WaiOpenAPIRoute {
 	}
 
 	async handleGenUserIdReq(authUserId: number, pdu: Pdu) {
-		const res = GenUserIdReq.parseMsg(pdu);
-		console.debug('[handleGenUserIdReq]', res);
+		console.debug('[handleGenUserIdReq]',authUserId);
 		const userIdStr = await kv.get('W_U_INCR_' + authUserId, true);
 		let userId = parseInt(ENV.USER_ID_START);
 		if (userIdStr) {
@@ -297,6 +292,7 @@ export default class ProtoController extends WaiOpenAPIRoute {
 			userId += 1;
 		}
 		await kv.put('W_U_INCR_' + authUserId, userId.toString());
+
 		return WaiOpenAPIRoute.responsePdu(
 			new GenUserIdRes({
 				userId,

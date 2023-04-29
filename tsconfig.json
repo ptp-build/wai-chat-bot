@@ -6,9 +6,9 @@
 		"outDir": "./dist/server",
 		"strict": true,
 		"sourceMap": true,
-		"types": ["@cloudflare/workers-types"],
+		"types": ["@cloudflare/workers-types", "jest"],
 		"typeRoots": ["node_modules/@types"],
-		"allowSyntheticDefaultImports": true,
+		"allowSyntheticDefaultImports": true
 	},
 	"exclude": ["dist", "node_modules"]
 }

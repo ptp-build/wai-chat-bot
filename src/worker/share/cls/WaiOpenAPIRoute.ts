@@ -1,10 +1,10 @@
-import { getCorsHeader } from '../utils/utils';
-import { ENV, kv } from '../../env';
+import {getCorsHeader} from '../utils/utils';
+import {ENV, kv} from '../../env';
 
-import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
-import { OpenAPIRoute } from '@cloudflare/itty-router-openapi';
+import {Pdu} from '../../../lib/ptp/protobuf/BaseMsg';
+import {OpenAPIRoute} from '@cloudflare/itty-router-openapi';
 import Account from '../Account';
-import { AuthSessionType, genUserId } from '../service/User';
+import {AuthSessionType, genUserId} from '../service/User';
 
 export default class WaiOpenAPIRoute extends OpenAPIRoute {
 	private authSession: AuthSessionType;
@@ -13,14 +13,18 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
 		return this.authSession;
 	}
 	async checkIfTokenIsInvalid(request: Request) {
+		const auth = request.headers.get('Authorization');
+
 		if (this.getAddressFromSign) {
 			return await this.checkTokenIsInvalid(request);
 		}
 		if (ENV.IS_PROD) {
-			const auth = request.headers.get('Authorization');
 			if (!auth) {
 				return WaiOpenAPIRoute.responseError('Authorization required', 400);
 			}
+
+		}
+		if(auth){
 			if (auth?.indexOf('Bearer ') !== 0) {
 				return WaiOpenAPIRoute.responseError('Authorization invalid', 400);
 			}
@@ -33,38 +37,44 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
 	}
 	async checkTokenIsInvalid(request: Request) {
 		const auth = request.headers.get('Authorization');
-		if (!auth) {
-			return WaiOpenAPIRoute.responseError('not auth', 400);
+
+		if (ENV.IS_PROD) {
+			if (!auth) {
+				return WaiOpenAPIRoute.responseError('not auth', 400);
+			}
 		}
-		const token = auth.replace('Bearer ', '');
-		if (token.indexOf('_') === -1) {
-			return WaiOpenAPIRoute.responseError('not auth', 400);
+
+		if(auth){
+			const token = auth.replace('Bearer ', '');
+			if (token.indexOf('_') === -1) {
+				return WaiOpenAPIRoute.responseError('not auth', 400);
+			}
+			const res = token.split('_');
+			const sign = res[0];
+			const ts = parseInt(res[1]);
+			const clientId = parseInt(res[3]);
+			const account = new Account(ts);
+			const { address } = account.recoverAddressAndPubKey(
+				Buffer.from(sign, 'hex'),
+				ts.toString()
+			);
+			if (!address) {
+				return WaiOpenAPIRoute.responseError('not auth', 400);
+			}
+			Account.setServerKv(kv);
+			let authUserId = await account.getUidFromCacheByAddress(address);
+			if (!authUserId) {
+				authUserId = await genUserId();
+				await account.saveUidFromCacheByAddress(address, authUserId);
+			}
+			this.authSession = {
+				address,
+				authUserId,
+				ts,
+				clientId,
+			};
+			console.log('[checkTokenIsInvalid]', JSON.stringify(this.authSession));
 		}
-		const res = token.split('_');
-		const sign = res[0];
-		const ts = parseInt(res[1]);
-		const clientId = parseInt(res[3]);
-		const account = new Account(ts);
-		const { address } = account.recoverAddressAndPubKey(
-			Buffer.from(sign, 'hex'),
-			ts.toString()
-		);
-		if (!address) {
-			return WaiOpenAPIRoute.responseError('not auth', 400);
-		}
-		Account.setServerKv(kv);
-		let authUserId = await account.getUidFromCacheByAddress(address);
-		if (!authUserId) {
-			authUserId = await genUserId();
-			await account.saveUidFromCacheByAddress(address, authUserId);
-		}
-		this.authSession = {
-			address,
-			authUserId,
-			ts,
-			clientId,
-		};
-		console.log('[checkTokenIsInvalid]', this.authSession);
 		return false;
 	}
 	jsonResp(params: { data: Record<string, any>; status?: number }): Response {
