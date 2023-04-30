@@ -8,7 +8,7 @@ import { UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
 import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
 import { ENV, kv } from '../../env';
 import { currentTs1000 } from '../utils/utils';
-import { FolderIdWai, FolderTitleWai, UserIdFirstBot } from '../../setting';
+import { FolderIdWai, FolderTitleWai, SERVER_USER_ID_START, UserIdFirstBot } from '../../setting';
 import { ShareBotReq, ShareBotRes } from '../../../lib/ptp/protobuf/PTPUser';
 import { requestOpenAi } from '../functions/openai';
 import ChatMsg from './ChatMsg';
@@ -177,10 +177,12 @@ export default class MsgDispatcher {
         });
       }
 
-      const cat = topCats.cats.find(cat => cat.title === '用户分享');
-      if (cat.botIds.indexOf(userId) === -1) {
-        cat.botIds.push(userId);
-        topCats.time = currentTs1000();
+      if (parseInt(userId) > parseInt(SERVER_USER_ID_START)) {
+        const cat = topCats.cats.find(cat => cat.title === '用户分享');
+        if (cat.botIds.indexOf(userId) === -1) {
+          cat.botIds.push(userId);
+          topCats.time = currentTs1000();
+        }
       }
       await kv.put('topCats-cn.json', JSON.stringify(topCats));
       this.sendPdu(
