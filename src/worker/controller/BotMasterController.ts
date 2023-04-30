@@ -20,6 +20,10 @@ const Body = {
 
 const Commands = [
   {
+    command: 'getTopCatsBots',
+    description: 'getTopCatsBots',
+  },
+  {
     command: 'getTopCats',
     description: 'getTopCats',
   },
@@ -34,6 +38,10 @@ const Commands = [
   {
     command: 'getAuth',
     description: 'getAuth',
+  },
+  {
+    command: 'getFolder',
+    description: 'getFolder',
   },
 ];
 
@@ -84,6 +92,11 @@ export class BotMasterAction extends WaiOpenAPIRoute {
       const { text } = data.body;
       if (text) {
         switch (text) {
+          case '/getFolder':
+            if (userStoreDataRes.chatFolders) {
+              userStoreDataRes.chatFolders = JSON.parse(userStoreDataRes.chatFolders);
+            }
+            return WaiOpenAPIRoute.responseJsonData(userStoreDataRes.chatFolders);
           case '/getAuth':
             if (userStoreDataRes.chatFolders) {
               userStoreDataRes.chatFolders = JSON.parse(userStoreDataRes.chatFolders);
@@ -93,11 +106,18 @@ export class BotMasterAction extends WaiOpenAPIRoute {
               userStoreDataRes,
             });
           case '/getTopCats':
+            // topCats.time = currentTs1000();
+            // await kv.put('topCats-cn.json', JSON.stringify(topCats));
             return WaiOpenAPIRoute.responseJsonData({
               cats: topCats.cats,
               time: topCats.time,
-              bots: topCats.bots.slice(0, 1),
             });
+
+          case '/getTopCatsBots':
+            return WaiOpenAPIRoute.responseJsonData({
+              bots: topCats.bots,
+            });
+
           case '/setTopCatsAdminUid':
             if (userStoreDataRes) {
               if (!userStoreDataRes.myBots) {
