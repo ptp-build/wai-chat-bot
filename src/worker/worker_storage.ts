@@ -1,35 +1,20 @@
-import { ENV, initEnv } from './env';
-import { SWAGGER_DOC } from './setting';
-import { getCorsOptionsHeader } from './share/utils/utils';
-import { OpenAPIRouter } from '@cloudflare/itty-router-openapi';
+import { Environment } from './env';
 import ProtoController from './controller/ProtoController';
+import { WaiRouter } from './route';
 
-const router = OpenAPIRouter(SWAGGER_DOC);
-
-router.all('*', async (request: Request) => {
-  if (request.method === 'OPTIONS') {
-    return new Response('', {
-      headers: {
-        ...getCorsOptionsHeader(ENV.Access_Control_Allow_Origin),
-      },
-    });
-  }
+const iRouter = new WaiRouter({
+  title: 'Worker Wai Chat Storage',
+  version: '1.0.1',
+}).setRoute((router: any) => {
+  router.post('/api/proto', ProtoController);
 });
 
-router.post('/api/proto', ProtoController);
-
-router.original.get('/', request => Response.redirect(`${request.url}docs`, 302));
-router.all('*', () => new Response('Not Found.', { status: 404 }));
-
-export type Environment = {};
-
-export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
-  return await router.handle(request);
-}
-const worker = {
+const worker: ExportedHandler<Environment> = {
   async fetch(request, env) {
-    initEnv(env);
-    return await handleEvent({ request, env });
+    return await iRouter.setEnv(env).handleRequest(request);
+  },
+  async scheduled(event, env, ctx) {
+    return await iRouter.setEnv(env).handleScheduled(event, ctx);
   },
 };
 

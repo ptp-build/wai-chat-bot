@@ -7,13 +7,13 @@
     "dev:nodemon": "nodemon",
     "start": "ts-node src/bot/server.ts",
     "start:bot": "ts-node src/bot.ts",
-    "dev:worker-api": "wrangler dev src/worker/index.ts --port 2235 --local --persist-to=./wrangler-local-state",
-    "deploy:worker-chatgpt": "wrangler publish src/worker/worker_chatgpt.ts -c wrangler.chatgpt.prod.toml",
-    "deploy:worker-storage": "wrangler publish src/worker/worker_storage.ts -c wrangler.storage.prod.toml",
+    "dev": "wrangler dev src/worker/index.ts --port 2235 --local --persist-to=./wrangler-local-state",
     "deploy:worker-websocket": "wrangler publish src/worker/worker_websocket.ts -c wrangler.websocket.prod.toml",
-    "deploy:worker-master": "wrangler publish src/worker/worker_master.ts -c wrangler.master.prod.toml",
+    "deploy:worker-master": "wrangler publish src/worker/worker_master.ts --name=wai-chat-bot-master -c wrangler.prod.toml",
+    "deploy:worker-chatgpt": "wrangler publish src/worker/worker_chatgpt.ts --name=wai-chat-bot-chatgpt -c wrangler.prod.toml",
+    "deploy:worker-storage": "wrangler publish src/worker/worker_storage.ts --name=wai-chat-bot-storage -c wrangler.prod.toml",
     "logs:worker": "wrangler tail --format=pretty",
-    "test:scheduled": "wrangler dev src/worker/worker_websocket.ts --test-scheduled"
+    "logs:worker:websocket": "wrangler tail --format=pretty"
   },
   "author": "",
   "license": "MIT",

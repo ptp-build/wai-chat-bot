@@ -1,8 +1,8 @@
 import CloudFlareKv from './share/db/CloudFlareKv';
 import CloudFlareR2 from './share/storage/CloudFlareR2';
-import LocalStorage from './share/db/LocalStorage';
 
-export const ENV: {
+export type Environment = {
+  DO_WEBSOCKET?: DurableObjectNamespace;
   IS_PROD: boolean;
   OPENAI_API_KEY: string;
   KV_NAMESPACE_BINDING_KEY: string;
@@ -10,7 +10,10 @@ export const ENV: {
   SERVER_USER_ID_START: string;
   Access_Control_Allow_Origin: string;
   TOKENS: string[];
-} = {
+};
+
+export const ENV: Environment = {
+  DO_WEBSOCKET: undefined,
   IS_PROD: true,
   OPENAI_API_KEY: '',
   KV_NAMESPACE_BINDING_KEY: 'DATABASE',
@@ -23,7 +26,7 @@ export const ENV: {
 export let kv: CloudFlareKv;
 export let storage: CloudFlareR2;
 
-export function initEnv(env: Record<string, any>) {
+export function initEnv(env: Environment) {
   for (const key in ENV) {
     if (env[key] !== undefined) {
       // @ts-ignore

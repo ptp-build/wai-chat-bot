@@ -2,13 +2,17 @@ import { ActionCommands, getActionCommandsName } from '../../../lib/ptp/protobuf
 import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
 import { AuthSessionType, getSessionInfoFromSign } from './User';
 import { AuthLoginReq, AuthLoginRes, InitAppRes } from '../../../lib/ptp/protobuf/PTPAuth';
-import { SendBotMsgReq, SendBotMsgRes, UpdateCmdReq } from '../../../lib/ptp/protobuf/PTPMsg';
+import { SendBotMsgReq, SendBotMsgRes } from '../../../lib/ptp/protobuf/PTPMsg';
 import { ERR, UserStoreData_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
 import { UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
 import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
-import { kv } from '../../env';
+import { ENV, kv } from '../../env';
 import { currentTs1000 } from '../utils/utils';
 import { FolderIdWai, FolderTitleWai, UserIdFirstBot } from '../../setting';
+import { ShareBotReq, ShareBotRes } from '../../../lib/ptp/protobuf/PTPUser';
+import { requestOpenAi } from '../functions/openai';
+import ChatMsg from './ChatMsg';
+import { createParser } from 'eventsource-parser';
 
 let dispatchers: Record<number, MsgDispatcher> = {};
 
@@ -96,6 +100,97 @@ export default class MsgDispatcher {
       );
     }
   }
+
+  async handleShareBotStopReq(pdu: Pdu) {
+    let res = ShareBotReq.parseMsg(pdu);
+    const userId = res.userId;
+    const authUserId1 = await kv.get(`W_B_U_R_${userId}`);
+    if (this.authUserId != authUserId1) {
+      this.sendPdu(
+        new ShareBotRes({
+          err: ERR.ERR_SYSTEM,
+        }).pack(),
+        pdu.getSeqNum()
+      );
+    } else {
+      const str = await kv.get('topCats-cn.json');
+      const topCats = JSON.parse(str);
+      let changed = false;
+      for (let i = 0; i < topCats.cats.length; i++) {
+        const cat = topCats.cats[i];
+        if (cat.botIds.indexOf(userId) > -1) {
+          changed = true;
+          topCats.cats[i].botIds = topCats.cats[i].botIds.filter(id => id !== userId);
+        }
+      }
+      if (changed) {
+        topCats.time = currentTs1000();
+        await kv.put('topCats-cn.json', JSON.stringify(topCats));
+      }
+      this.sendPdu(
+        new ShareBotRes({
+          err: ERR.NO_ERROR,
+        }).pack(),
+        pdu.getSeqNum()
+      );
+    }
+  }
+  async handleShareBotReq(pdu: Pdu) {
+    let res = ShareBotReq.parseMsg(pdu);
+    const userId = res.userId;
+    const authUserId1 = await kv.get(`W_B_U_R_${userId}`);
+    if (this.authUserId != authUserId1) {
+      this.sendPdu(
+        new ShareBotRes({
+          err: ERR.ERR_SYSTEM,
+        }).pack(),
+        pdu.getSeqNum()
+      );
+    } else {
+      const str = await kv.get('topCats-cn.json');
+      const topCats = JSON.parse(str);
+      let changed = false;
+      for (let i = 0; i < topCats.bots.length; i++) {
+        const bot = topCats.bots[i];
+        if (bot.userId === userId) {
+          topCats.bots[i] = {
+            ...bot,
+            ...res,
+            time: currentTs1000(),
+          };
+          break;
+        }
+      }
+
+      if (!topCats.cats.find(cat => cat.title === '用户分享')) {
+        topCats.cats.push({
+          title: '用户分享',
+          botIds: [],
+        });
+        topCats.time = currentTs1000();
+      }
+
+      if (!changed) {
+        topCats.bots.push({
+          ...res,
+          time: currentTs1000(),
+        });
+      }
+
+      const cat = topCats.cats.find(cat => cat.title === '用户分享');
+      if (cat.botIds.indexOf(userId) === -1) {
+        cat.botIds.push(userId);
+        topCats.time = currentTs1000();
+      }
+      await kv.put('topCats-cn.json', JSON.stringify(topCats));
+      this.sendPdu(
+        new ShareBotRes({
+          err: ERR.NO_ERROR,
+        }).pack(),
+        pdu.getSeqNum()
+      );
+    }
+  }
   async handleSendBotMsgReq(pdu: Pdu) {
     let { text, chatId, msgId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
     console.log('handleSendBotMsgReq', { text, chatId, msgId, chatGpt });
@@ -105,119 +200,115 @@ export default class MsgDispatcher {
       }).pack(),
       pdu.getSeqNum()
     );
-    // if (chatGpt) {
-    //   let { messages, apiKey, systemPrompt, ...modelConfig } = JSON.parse(chatGpt);
-    //   messages.unshift({
-    //     role: 'system',
-    //     content: systemPrompt,
-    //   });
-    //   messages.forEach((message: { date: undefined }) => {
-    //     if (message.date !== undefined) {
-    //       delete message.date;
-    //     }
-    //   });
-    //   const body = JSON.stringify({
-    //     ...modelConfig,
-    //     messages,
-    //     stream: true,
-    //   });
-    //   const encoder = new TextEncoder();
-    //   const decoder = new TextDecoder();
-    //   if (!apiKey) {
-    //     apiKey = ENV.OPENAI_API_KEY;
-    //   }
-    //   const res = await requestOpenAi('POST', 'v1/chat/completions', body, apiKey);
-    //   let reply = '';
-    //   if (!msgId) {
-    //     msgId = await ChatMsg.genMessageId();
-    //   }
-    //   new ReadableStream({
-    //     async start(controller) {
-    //       function onParse(event: any) {
-    //         if (event.type === 'event') {
-    //           const assets = event.assets;
-    //           // https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
-    //           if (assets === '[DONE]') {
-    //             console.error('[handleSendBotMsgReq]', assets);
-    //             controller.close();
-    //             ChatMsg.sendPdu(
-    //               new SendBotMsgRes({
-    //                 msgId,
-    //                 chatId,
-    //                 reply,
-    //                 streamEnd: true,
-    //               }).pack(),
-    //               ws,
-    //               pdu.getSeqNum()
-    //             );
-    //             return;
-    //           }
-    //           try {
-    //             const json = JSON.parse(assets);
-    //             const text = json.choices[0].delta.content;
-    //             const queue = encoder.encode(text);
-    //             if (text) {
-    //               reply += text;
-    //               console.log(reply);
-    //               ChatMsg.sendPdu(
-    //                 new SendBotMsgRes({
-    //                   msgId,
-    //                   chatId,
-    //                   reply,
-    //                 }).pack(),
-    //                 ws,
-    //                 pdu.getSeqNum()
-    //               );
-    //             }
-    //             controller.enqueue(queue);
-    //           } catch (e) {
-    //             console.error('[handleSendBotMsgReq] error', e);
-    //             controller.error(e);
-    //           }
-    //         }
-    //       }
-    //       let parser;
-    //
-    //       for await (const chunk of res.body as any) {
-    //         const chunkDecode = decoder.decode(chunk);
-    //         if (chunkDecode) {
-    //           const chunkDecodeStr = Buffer.from(chunkDecode).toString();
-    //           if (chunkDecodeStr.indexOf('{') === 0 && chunkDecodeStr.indexOf('"error": {') > 0) {
-    //             const chunkDecodeJson = JSON.parse(chunkDecodeStr);
-    //             if (chunkDecodeJson.error) {
-    //               console.error('[error]', chunkDecodeJson.error.message);
-    //               ChatMsg.sendPdu(
-    //                 new SendBotMsgRes({
-    //                   chatId,
-    //                   msgId,
-    //                   reply: chunkDecodeJson.error.message,
-    //                 }).pack(),
-    //                 ws,
-    //                 pdu.getSeqNum()
-    //               );
-    //               return;
-    //             }
-    //           }
-    //         }
-    //
-    //         if (!parser) {
-    //           parser = createParser(onParse);
-    //         }
-    //         // console.log(Buffer.from(chunkDecode).toString());
-    //         parser.feed(chunkDecode);
-    //       }
-    //     },
-    //   });
-    // } else {
-    //   ChatMsg.sendPdu(
-    //     new SendBotMsgRes({
-    //       chatId,
-    //       reply: text,
-    //     }).pack(),
-    //     ws,
-    //     pdu.getSeqNum()
-    //   );
-    // }
+    if (chatGpt) {
+      await this.handleChatGptMsg(pdu);
+    }
+  }
+  async handleChatGptMsg(pdu: Pdu) {
+    let { chatId, msgId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
+
+    let { messages, apiKey, systemPrompt, ...modelConfig } = JSON.parse(chatGpt);
+    messages.unshift({
+      role: 'system',
+      content: systemPrompt,
+    });
+    messages.forEach((message: { date: undefined }) => {
+      if (message.date !== undefined) {
+        delete message.date;
+      }
+    });
+    const body = JSON.stringify({
+      ...modelConfig,
+      messages,
+      stream: true,
+    });
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    if (!apiKey) {
+      apiKey = ENV.OPENAI_API_KEY;
+    }
+    const res = await requestOpenAi('POST', 'v1/chat/completions', body, apiKey);
+    let reply = '';
+    if (!msgId) {
+      msgId = await ChatMsg.genMessageId();
+    }
+    new ReadableStream({
+      async start(controller) {
+        function onParse(event: any) {
+          if (event.type === 'event') {
+            const assets = event.assets;
+            // https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
+            if (assets === '[DONE]') {
+              console.error('[handleSendBotMsgReq]', assets);
+              controller.close();
+              // ChatMsg.sendPdu(
+              //   new SendBotMsgRes({
+              //     msgId,
+              //     chatId,
+              //     reply,
+              //     streamEnd: true,
+              //   }).pack(),
+              //   ws,
+              //   pdu.getSeqNum()
+              // );
+              return;
+            }
+            try {
+              const json = JSON.parse(assets);
+              const text = json.choices[0].delta.content;
+              const queue = encoder.encode(text);
+              if (text) {
+                reply += text;
+                console.log(reply);
+                // ChatMsg.sendPdu(
+                //   new SendBotMsgRes({
+                //     msgId,
+                //     chatId,
+                //     reply,
+                //   }).pack(),
+                //   ws,
+                //   pdu.getSeqNum()
+                // );
+              }
+              controller.enqueue(queue);
+            } catch (e) {
+              console.error('[handleSendBotMsgReq] error', e);
+              controller.error(e);
+            }
+          }
+        }
+        let parser;
+
+        for await (const chunk of res.body as any) {
+          const chunkDecode = decoder.decode(chunk);
+          if (chunkDecode) {
+            const chunkDecodeStr = Buffer.from(chunkDecode).toString();
+            if (chunkDecodeStr.indexOf('{') === 0 && chunkDecodeStr.indexOf('"error": {') > 0) {
+              const chunkDecodeJson = JSON.parse(chunkDecodeStr);
+              if (chunkDecodeJson.error) {
+                console.error('[error]', chunkDecodeJson.error.message);
+                // ChatMsg.sendPdu(
+                //   new SendBotMsgRes({
+                //     chatId,
+                //     msgId,
+                //     reply: chunkDecodeJson.error.message,
+                //   }).pack(),
+                //   ws,
+                //   pdu.getSeqNum()
+                // );
+                return;
+              }
+            }
+          }
+
+          if (!parser) {
+            parser = createParser(onParse);
+          }
+          // console.log(Buffer.from(chunkDecode).toString());
+          parser.feed(chunkDecode);
+        }
+      },
+    });
   }
   async handleTopCatsReq(pdu: Pdu) {
     const { time } = TopCatsReq.parseMsg(pdu);
@@ -230,9 +321,9 @@ export default class MsgDispatcher {
       return;
     }
     let payload: any = {};
-    if (topCats.time > time) {
+    console.log('handleTopCatsReq', time, topCats.time, time < topCats.time);
+    if (time < topCats.time) {
       payload = {
-        time: topCats.time,
         topSearchPlaceHolder: '编程 写作 旅游...',
         cats: topCats.cats,
       };
@@ -253,52 +344,18 @@ export default class MsgDispatcher {
       pdu.getSeqNum()
     );
   }
-  static async handleUpdateCmdReq(pdu: Pdu, ws?: WebSocket) {
-    const { chatId } = UpdateCmdReq.parseMsg(pdu);
-    //
-    // ChatMsg.sendPdu(
-    //   new UpdateCmdRes({
-    //     chatId,
-    //     commands: [
-    //       {
-    //         command: 'test',
-    //         description: 'test',
-    //         botId: chatId,
-    //       },
-    //     ],
-    //   }).pack(),
-    //   ws,
-    //   pdu.getSeqNum()
-    // );
-  }
+  static async handleUpdateCmdReq(pdu: Pdu, ws?: WebSocket) {}
   static async handleWsMsg(accountId: string, pdu) {
     const dispatcher = MsgDispatcher.getInstance(accountId);
-    console.log('[onMessage]', getActionCommandsName(pdu.getCommandId()));
+    console.log(
+      '[onMessage]',
+      getActionCommandsName(pdu.getCommandId()),
+      pdu.getSeqNum(),
+      pdu.getPbData().slice(0, 16)
+    );
     switch (pdu.getCommandId()) {
       case ActionCommands.CID_AuthLoginReq:
         await dispatcher.handleAuthLoginReq(pdu);
-        // const authSession = await ChatMsg.handleAuthLoginReq(pdu);
-        // if (authSession) {
-        // const account = this.accounts.get(accountId);
-        // this.accounts.set(accountId, {
-        //   websocket: webSocket,
-        //   id: account?.id!,
-        //   city: account?.city,
-        //   country: account?.country,
-        //   authSession,
-        // });
-        // let accountIds: string[] = [];
-        // if (
-        //   this.authUserAddressAccountMap &&
-        //   this.authUserAddressAccountMap.has(authSession.address)
-        // ) {
-        //   accountIds = this.authUserAddressAccountMap.get(authSession.address)!;
-        // }
-        // accountIds.push(accountId);
-        // this.authUserAddressAccountMap.set(authSession.address, accountIds);
-        // console.log('CID_AuthLoginReq', authSession);
-        // console.log('accounts', this.accounts);
-        // }
         break;
       case ActionCommands.CID_SyncReq:
         await dispatcher.handleSyncReq(pdu);
@@ -311,6 +368,12 @@ export default class MsgDispatcher {
         break;
       case ActionCommands.CID_SendBotMsgReq:
         await dispatcher.handleSendBotMsgReq(pdu);
+        break;
+      case ActionCommands.CID_ShareBotReq:
+        await dispatcher.handleShareBotReq(pdu);
+        break;
+      case ActionCommands.CID_ShareBotStopReq:
+        await dispatcher.handleShareBotStopReq(pdu);
         break;
     }
   }

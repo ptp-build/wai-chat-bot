@@ -1,54 +1,54 @@
-import { ENV } from './env';
+import { ENV, Environment, initEnv } from './env';
 import { SWAGGER_DOC } from './setting';
 import { getCorsOptionsHeader } from './share/utils/utils';
-import { OpenAPIRouter } from '@cloudflare/itty-router-openapi';
-import { Environment } from './index';
-import {
-  ChatGptAction,
-  ChatGptBillingUsageAction,
-  ChatGptCommandsAction,
-} from './controller/ChatGptController';
-import ProtoController from './controller/ProtoController';
-import {
-  AutoGptCreateTasksAction,
-  AutoGptExecuteTaskAction,
-  AutoGptStartGoalAction,
-} from './controller/AutoGptController';
-import { BotMasterAction, BotMasterCommandsAction } from './controller/BotMasterController';
+import { OpenAPIRouter, OpenAPIRouterSchema } from '@cloudflare/itty-router-openapi';
 
-export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
-  return await router.handle(request);
-}
-
-const router = OpenAPIRouter(SWAGGER_DOC);
-
-router.all('*', async (request: Request) => {
-  const { WAI_WORKER_API_TOKEN, IS_PROD } = ENV;
-  if (request.method === 'OPTIONS') {
-    return new Response('', {
-      headers: {
-        ...getCorsOptionsHeader(ENV.Access_Control_Allow_Origin),
+export class WaiRouter {
+  private version?: string;
+  private title: string;
+  private router: any;
+  constructor(info: { title: string; version?: string }) {
+    this.title = info.title;
+    this.version = info.version;
+  }
+  getInfo() {
+    return {
+      title: this.title,
+      version: this.version || '1.0.1',
+    };
+  }
+  setRoute(iRoute: (router: OpenAPIRouterSchema) => void) {
+    const router = OpenAPIRouter({
+      ...SWAGGER_DOC,
+      schema: {
+        ...SWAGGER_DOC.schema,
+        info: {
+          ...this.getInfo(),
+        },
       },
     });
+    this.router = router;
+    router.all('*', async (request: Request) => {
+      if (request.method === 'OPTIONS') {
+        return new Response('', {
+          headers: {
+            ...getCorsOptionsHeader(ENV.Access_Control_Allow_Origin),
+          },
+        });
+      }
+    });
+    iRoute(router);
+    router.original.get('/', request => Response.redirect(`${request.url}docs`, 302));
+    router.all('*', () => new Response('Not Found.', { status: 404 }));
+    return this;
+  }
+  setEnv(env: Environment) {
+    initEnv(env);
+    return this;
+  }
+  async handleRequest(request: Request) {
+    return this.router.handle(request);
   }
 
-  if (IS_PROD && request.url.includes('/api/')) {
-    const auth = request.headers.get('Authorization');
-  }
-});
-
-router.post('/api/chatgpt/v1/chat/completions', ChatGptAction);
-router.post('/api/chatgpt/usage', ChatGptBillingUsageAction);
-router.post('/api/chatgpt/commands', ChatGptCommandsAction);
-
-router.post('/api/autoGpt/start', AutoGptStartGoalAction);
-router.post('/api/autoGpt/execute', AutoGptExecuteTaskAction);
-router.post('/api/autoGpt/createTasks', AutoGptCreateTasksAction);
-
-router.post('/api/master/message', BotMasterAction);
-router.post('/api/master/commands', BotMasterCommandsAction);
-
-router.post('/api/proto', ProtoController);
-
-router.original.get('/', request => Response.redirect(`${request.url}docs`, 302));
-router.all('*', () => new Response('Not Found.', { status: 404 }));
+  async handleScheduled(event: ScheduledController, ctx: ExecutionContext) {}
+}

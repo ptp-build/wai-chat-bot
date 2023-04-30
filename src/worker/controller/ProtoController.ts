@@ -272,7 +272,7 @@ export default class ProtoController extends WaiOpenAPIRoute {
       userId += 1;
     }
     await kv.put('W_U_INCR_' + authUserId, userId.toString());
-
+    await kv.put(`W_B_U_R_${userId}`, authUserId.toString());
     return WaiOpenAPIRoute.responsePdu(
       new GenUserIdRes({
         userId,
