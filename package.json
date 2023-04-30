@@ -11,7 +11,9 @@
     "deploy:worker-chatgpt": "wrangler publish src/worker/worker_chatgpt.ts -c wrangler.chatgpt.prod.toml",
     "deploy:worker-storage": "wrangler publish src/worker/worker_storage.ts -c wrangler.storage.prod.toml",
     "deploy:worker-websocket": "wrangler publish src/worker/worker_websocket.ts -c wrangler.websocket.prod.toml",
-    "logs:worker": "wrangler tail --format=pretty"
+    "deploy:worker-master": "wrangler publish src/worker/worker_master.ts -c wrangler.master.prod.toml",
+    "logs:worker": "wrangler tail --format=pretty",
+    "test:scheduled": "wrangler dev src/worker/worker_websocket.ts --test-scheduled"
   },
   "author": "",
   "license": "MIT",

@@ -128,7 +128,6 @@ export class WebSocketDurableObject {
   }
 
   alarm() {
-    const msg = { type: 'healthcheck' };
     this.broadcast(Buffer.from(new OtherNotify({ err: ERR.NO_ERROR }).pack().getPbData()));
     if (this.accounts.size) this.scheduleNextAlarm(this.storage);
   }

@@ -57,10 +57,6 @@ export default class ProtoController extends WaiOpenAPIRoute {
 
   async dispatch(request: Request) {
     try {
-      const res = await this.checkIfTokenIsInvalid(request);
-      if (res) {
-        return res;
-      }
       const arrayBuffer = await request.arrayBuffer();
       let pdu = new Pdu(Buffer.from(arrayBuffer));
       switch (pdu.getCommandId()) {
@@ -68,6 +64,11 @@ export default class ProtoController extends WaiOpenAPIRoute {
           return Download(pdu);
         default:
           break;
+      }
+
+      const res = await this.checkIfTokenIsInvalid(request);
+      if (res) {
+        return res;
       }
 
       const { authUserId, address } = this.authSession;

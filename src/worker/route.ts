@@ -14,6 +14,7 @@ import {
   AutoGptExecuteTaskAction,
   AutoGptStartGoalAction,
 } from './controller/AutoGptController';
+import { BotMasterAction, BotMasterCommandsAction } from './controller/BotMasterController';
 
 export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
   return await router.handle(request);
@@ -43,6 +44,9 @@ router.post('/api/chatgpt/commands', ChatGptCommandsAction);
 router.post('/api/autoGpt/start', AutoGptStartGoalAction);
 router.post('/api/autoGpt/execute', AutoGptExecuteTaskAction);
 router.post('/api/autoGpt/createTasks', AutoGptCreateTasksAction);
+
+router.post('/api/master/message', BotMasterAction);
+router.post('/api/master/commands', BotMasterCommandsAction);
 
 router.post('/api/proto', ProtoController);
 

@@ -7,17 +7,12 @@ import ProtoController from './controller/ProtoController';
 const router = OpenAPIRouter(SWAGGER_DOC);
 
 router.all('*', async (request: Request) => {
-  const { WAI_WORKER_API_TOKEN, IS_PROD } = ENV;
   if (request.method === 'OPTIONS') {
     return new Response('', {
       headers: {
         ...getCorsOptionsHeader(ENV.Access_Control_Allow_Origin),
       },
     });
-  }
-
-  if (IS_PROD && request.url.includes('/api/')) {
-    const auth = request.headers.get('Authorization');
   }
 });
 
@@ -31,7 +26,7 @@ export type Environment = {};
 export async function handleEvent({ request, env }: { request: Request; env: Environment }) {
   return await router.handle(request);
 }
-const worker: ExportedHandler<Environment> = {
+const worker = {
   async fetch(request, env) {
     initEnv(env);
     return await handleEvent({ request, env });

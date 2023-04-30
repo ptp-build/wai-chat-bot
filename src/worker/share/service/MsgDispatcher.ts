@@ -8,6 +8,7 @@ import { UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
 import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
 import { kv } from '../../env';
 import { currentTs1000 } from '../utils/utils';
+import { FolderIdWai, FolderTitleWai, UserIdFirstBot } from '../../setting';
 
 let dispatchers: Record<number, MsgDispatcher> = {};
 
@@ -29,14 +30,14 @@ export default class MsgDispatcher {
     const users = [];
     const chats = [];
     const messages = [];
-    // const chatFolders = [
-    //   {
-    //     id:FolderIdWai,
-    //     title:FolderTitleWai,
-    //     includedChatIds:[UserIdFirstBot],
-    //     excludedChatIds:[]
-    //   }
-    // ];
+    const chatFolders = [
+      {
+        id: FolderIdWai,
+        title: FolderTitleWai,
+        includedChatIds: [UserIdFirstBot],
+        excludedChatIds: [],
+      },
+    ];
     this.sendPdu(
       new InitAppRes({
         users: JSON.stringify(users),
@@ -220,9 +221,8 @@ export default class MsgDispatcher {
   }
   async handleTopCatsReq(pdu: Pdu) {
     const { time } = TopCatsReq.parseMsg(pdu);
-    // const topCats = require('../../../assets/jsons/bots-cn.json');
-    // await kv.put('topCats-cn.json', JSON.stringify(topCats));
     const str = await kv.get('topCats-cn.json');
+
     let topCats;
     if (str) {
       topCats = JSON.parse(str);
