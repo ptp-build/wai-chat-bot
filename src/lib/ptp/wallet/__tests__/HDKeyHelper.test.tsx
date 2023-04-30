@@ -132,7 +132,7 @@ export default {}
 //   var indexBuffer = Buffer.allocUnsafe(4);
 //   indexBuffer.writeUInt32BE(index, 0);
 //
-//   var data;
+//   var assets;
 //
 //   if (isHardened) { // Hardened child
 //     assert(this.privateKey, 'Could not derive hardened child key');
@@ -141,15 +141,15 @@ export default {}
 //     var zb = Buffer.alloc(1, 0);
 //     pk = Buffer.concat([zb, pk]);
 //
-//     // data = 0x00 || ser256(kpar) || ser32(index)
-//     data = Buffer.concat([pk, indexBuffer]);
+//     // assets = 0x00 || ser256(kpar) || ser32(index)
+//     assets = Buffer.concat([pk, indexBuffer]);
 //   } else { // Normal child
-//     // data = serP(point(kpar)) || ser32(index)
+//     // assets = serP(point(kpar)) || ser32(index)
 //     //      = serP(Kpar) || ser32(index)
-//     data = Buffer.concat([this.publicKey, indexBuffer]);
+//     assets = Buffer.concat([this.publicKey, indexBuffer]);
 //   }
 //
-//   var I = createHmac('sha512', this.chainCode).update(data).digest();
+//   var I = createHmac('sha512', this.chainCode).update(assets).digest();
 //   var IL = I.slice(0, 32);
 //   var IR = I.slice(32);
 //

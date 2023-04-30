@@ -110,6 +110,10 @@ export interface PbChatGpBotConfig_Type {
   api_key?: string;
   max_history_length?: number;
   modelConfig?: PbChatGptModelConfig_Type;
+  welcome?: string;
+  template?: string;
+  outputText?: string;
+  templateSubmit?: string;
 }
 
 export interface PbChatGptModelConfig_Type {
@@ -189,6 +193,9 @@ export interface PbMsg_Type {
   senderId?: string;
   isForwardingAllowed?: boolean;
   previousLocalId?: number;
+  views?: number;
+  repliesThreadInfo?: PbRepliesThreadInfo_Type;
+  reactions?: PbReactions_Type;
 }
 
 export interface PbPhoto_Type {
@@ -201,6 +208,31 @@ export interface PbPhoto_Type {
 export interface PbQrCode_Type {
   type: QrCodeType;
   data: Buffer;
+}
+
+export interface PbReaction_Type {
+  emoticon: string;
+}
+
+export interface PbReactionCount_Type {
+  chosenOrder?: number;
+  count: number;
+  reaction: PbReaction_Type;
+}
+
+export interface PbReactions_Type {
+  canSeeList?: boolean;
+  results?: PbReactionCount_Type[];
+}
+
+export interface PbRepliesThreadInfo_Type {
+  isComments: boolean;
+  threadId: number;
+  chatId: string;
+  originChannelId: string;
+  messagesCount: number;
+  lastMessageId: number;
+  recentReplierIds?: string[];
 }
 
 export interface PbSettings_Type {
@@ -252,13 +284,6 @@ export interface PbUsernames_Type {
   isEditable?: boolean;
 }
 
-export interface PbUserSetting_Type {
-  chatFolders?: PbChatFolder_Type[];
-  chatFolderOrderedIds?: number[];
-  myBotIds?: string[];
-  myGroups?: string[];
-}
-
 export interface PbVoice_Type {
   id: string;
   waveform?: number[];
@@ -275,8 +300,10 @@ export interface UserMessageStoreData_Type {
 export interface UserStoreData_Type {
   chatIds?: string[];
   chatIdsDeleted?: string[];
-  chatFolders: string;
-  time: number;
+  chatFolders?: string;
+  time?: number;
+  myBots?: string[];
+  myGroups?: string[];
 }
 
 export interface UserStoreRow_Type {

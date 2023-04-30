@@ -270,7 +270,7 @@ export async function fileToBuffer(file: File) {
 
 function downloadText(text: string, filename: string, type = 'text/json') {
 	var element = document.createElement('a');
-	element.setAttribute('href', 'data:' + type + ';charset=utf-8,' + encodeURIComponent(text));
+	element.setAttribute('href', 'assets:' + type + ';charset=utf-8,' + encodeURIComponent(text));
 	element.setAttribute('download', filename);
 
 	element.style.display = 'none';
