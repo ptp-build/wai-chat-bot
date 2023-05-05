@@ -60,7 +60,7 @@ jobs:
         uses: cloudflare/wrangler-action@2.0.0
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_WRANGLER_WEBSOCKET_PROD_TOML: ${{ secrets.CONFIG_WRANGLER_WEBSOCKET_PROD_TOML }}
+          CONFIG_WRANGLER_WEBSOCKET_PROD_TOML: ${{ env.CONFIG_WRANGLER_WEBSOCKET_PROD_TOML }}
           preCommands: |
             npm install
             echo $CONFIG_WRANGLER_WEBSOCKET_PROD_TOML | base64 -d > wrangler.toml
