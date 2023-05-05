@@ -23,7 +23,7 @@ yarn-error.log*
 
 /dist
 .idea
-
+*.log
 wrangler-local-state/
 wrangler.toml
 wrangler.prod.toml
