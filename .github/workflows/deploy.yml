@@ -6,21 +6,64 @@ on:
       - feature-ws
 
 jobs:
-  deploy:
+  deploy_storage:
     runs-on: ubuntu-latest
-    name: Deploy
+    name: deploy_storage
     steps:
       - uses: actions/checkout@v2
       - name: Publish
         uses: cloudflare/wrangler-action@2.0.0
-        env:
-          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_TOML }}
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_TOML }}
+          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_PROD_TOML }}
           preCommands: |
             npm install
-            echo $CONFIG_WRANGLER_TOML
             echo $CONFIG_WRANGLER_TOML | base64 -d > wrangler.toml
             cat wrangler.toml
+          command: publish src/worker/worker_storage.ts --name=wai-chat-bot-storage
+  deploy_chatgpt:
+    runs-on: ubuntu-latest
+    name: deploy_chatgpt
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish
+        uses: cloudflare/wrangler-action@2.0.0
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_PROD_TOML }}
+          preCommands: |
+            npm install
+            echo $CONFIG_WRANGLER_TOML | base64 -d > wrangler.toml
+            cat wrangler.toml
+          command: publish src/worker/worker_chatgpt.ts --name=wai-chat-bot-chatgpt
+  deploy_master:
+    runs-on: ubuntu-latest
+    name: deploy_master
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish
+        uses: cloudflare/wrangler-action@2.0.0
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_PROD_TOML }}
+          preCommands: |
+            npm install
+            echo $CONFIG_WRANGLER_TOML | base64 -d > wrangler.toml
+            cat wrangler.toml
+          command: publish src/worker/worker_master.ts --name=wai-chat-bot-master
+  deploy_websocket:
+    runs-on: ubuntu-latest
+    name: deploy_websocket
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish
+        uses: cloudflare/wrangler-action@2.0.0
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_WEBSOCKET_PROD_TOML }}
+          preCommands: |
+            npm install
+            echo $CONFIG_WRANGLER_TOML | base64 -d > wrangler.toml
+            cat wrangler.toml
+          command: publish src/worker/worker_websocket.ts --name=wai-chat-bot-websocket
 
