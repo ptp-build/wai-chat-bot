@@ -272,7 +272,9 @@ export default class ProtoController extends WaiOpenAPIRoute {
       if(chatId === userId){
         return WaiOpenAPIRoute.responsePdu(
             new DownloadUserRes({
-              payload:JSON.stringify(bots[i]),
+              payload:{
+                chat:JSON.stringify(bots[i])
+              },
               err: ERR.NO_ERROR,
             }).pack()
         );
