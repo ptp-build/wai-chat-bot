@@ -18,7 +18,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_TOML }}
-
           preCommands: echo "*** pre command ***"
           postCommands: |
             echo $CONFIG_WRANGLER_TOML
+            echo $T | base64 -d > wrangler.toml
+            cat wrangler.toml
+
