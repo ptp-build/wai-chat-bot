@@ -13,9 +13,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Publish
         uses: cloudflare/wrangler-action@2.0.0
+        env:
+          CONFIG_WRANGLER_PROD_TOML: ${{ vars.CONFIG_WRANGLER_PROD_TOML }}
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_WRANGLER_PROD_TOML: ${{ secrets.CONFIG_WRANGLER_PROD_TOML }}
           preCommands: |
             npm install
             echo $CONFIG_WRANGLER_PROD_TOML | base64 -d > wrangler.toml
@@ -28,9 +29,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Publish
         uses: cloudflare/wrangler-action@2.0.0
+        env:
+          CONFIG_WRANGLER_PROD_TOML: ${{ vars.CONFIG_WRANGLER_PROD_TOML }}
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_WRANGLER_PROD_TOML: ${{ secrets.CONFIG_WRANGLER_PROD_TOML }}
           preCommands: |
             npm install
             echo $CONFIG_WRANGLER_PROD_TOML | base64 -d > wrangler.toml
@@ -43,9 +45,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Publish
         uses: cloudflare/wrangler-action@2.0.0
+        env:
+          CONFIG_WRANGLER_PROD_TOML: ${{ vars.CONFIG_WRANGLER_PROD_TOML }}
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_WRANGLER_PROD_TOML: ${{ secrets.CONFIG_WRANGLER_PROD_TOML }}
           preCommands: |
             npm install
             echo $CONFIG_WRANGLER_PROD_TOML | base64 -d > wrangler.toml
