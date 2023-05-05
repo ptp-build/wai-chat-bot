@@ -4,6 +4,13 @@ export enum AUTH_TYPE {
   AUTH_TYPE_MOBILE = 2,
 }
 
+export enum ChatGptStreamStatus {
+  ChatGptStreamStatus_START = 0,
+  ChatGptStreamStatus_GOING = 1,
+  ChatGptStreamStatus_DONE = 2,
+  ChatGptStreamStatus_ERROR = 3,
+}
+
 export enum EncryptType {
   EncryptType_Wallet = 0,
   EncryptType_Group = 1,
@@ -16,6 +23,7 @@ export enum ERR {
   ERR_SYSTEM = 1,
   ERR_AUTH_LOGIN = 2,
   ERR_AUTH_NEED = 3,
+  ERR_NOT_FOUND = 4,
 }
 
 export enum QrCodeType {

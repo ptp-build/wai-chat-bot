@@ -27,6 +27,7 @@ import {
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
 import { UserMessageStoreData } from '../../lib/ptp/protobuf/PTPCommon';
 import { OtherNotify } from '../../lib/ptp/protobuf/PTPOther';
+import {FetchChatReq} from "../../lib/ptp/protobuf/PTPChats";
 
 export default class ProtoController extends WaiOpenAPIRoute {
   private authSession: AuthSessionType;
@@ -92,6 +93,8 @@ export default class ProtoController extends WaiOpenAPIRoute {
           return this.handleRemoveMessagesReq(Number(authUserId), pdu);
         case ActionCommands.CID_DownloadMsgReq:
           return this.handleDownloadMsgReq(Number(authUserId), pdu);
+        case ActionCommands.CID_FetchChatReq:
+          return this.handleFetchChatReq(Number(authUserId), pdu);
         case ActionCommands.CID_GenUserIdReq:
           return this.handleGenUserIdReq(Number(authUserId), pdu);
         case ActionCommands.CID_UploadReq:
@@ -257,6 +260,28 @@ export default class ProtoController extends WaiOpenAPIRoute {
         users,
         err: ERR.NO_ERROR,
       }).pack()
+    );
+  }
+  async handleFetchChatReq(authUserId: number, pdu: Pdu){
+    const { chatId } = FetchChatReq.parseMsg(pdu);
+    const str = await kv.get('topCats-cn.json');
+    const topCats = JSON.parse(str);
+    const {bots} = topCats;
+    for (let i = 0; i < bots.length; i++) {
+      const {userId} = bots[i]
+      if(chatId === userId){
+        return WaiOpenAPIRoute.responsePdu(
+            new DownloadUserRes({
+              payload:JSON.stringify(bots[i]),
+              err: ERR.NO_ERROR,
+            }).pack()
+        );
+      }
+    }
+    return WaiOpenAPIRoute.responsePdu(
+        new DownloadUserRes({
+          err: ERR.ERR_SYSTEM,
+        }).pack()
     );
   }
   async handleGenUserIdReq(authUserId: number, pdu: Pdu) {

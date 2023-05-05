@@ -161,13 +161,29 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 
 		const { body } = data;
 		const apiKey = getApiKey(body);
-
+		if(!apiKey){
+			return WaiOpenAPIRoute.responseData("请输入 openAi /apiKey \n\n" +
+				"或者\n" +
+				"\n" +
+				"进入 @wai 发送 /freePlan 获得免费资格\n\n" +
+				"或者\n" +
+				"\n" +
+				"进入 @wai 发送 /buyPro 获得付费用户资格\n" +
+				"\n"
+				// "通过以下方式获得一天的试用资格\n" +
+				// "1.star or fork 项目仓库，地址\n https://github.com/ptp-build/wai-chat\n" +
+				// "2.关注推特 @WaiChatBot\n" +
+				// "3.Twitter 转发分享AI聊天 并 提及 @WaiChatBot\n" +
+				// "4.创建聊天机器人之后转发Twitter, 并提及 @WaiChatBot\n" +
+				// "\n" +
+				// "完成以上任何一项请Twitter私信@WaiChatBot，我们将回复你的 apiKey"
+			);
+		}
 		let systemPrompt = '';
 		if (body['systemPrompt']) {
 			systemPrompt = body['systemPrompt'];
 		}
-		const chatId = body.chatId;
-		const msgId = body.msgId;
+
 		delete body['systemPrompt'];
 		delete body['chatId'];
 		delete body['msgId'];
@@ -186,8 +202,7 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 				const stream = await createStream(JSON.stringify(body), apiKey);
 				return WaiOpenAPIRoute.responseData(stream);
 			}else{
-				const res = await requestOpenAi('POST', 'v1/chat/completions', JSON.stringify(body), apiKey);
-				return res;
+				return await requestOpenAi('POST', 'v1/chat/completions', JSON.stringify(body), apiKey);
 			}
 		} catch (error) {
 			console.error(error);

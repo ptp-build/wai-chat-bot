@@ -1,10 +1,10 @@
-import { Str } from '@cloudflare/itty-router-openapi';
+import {Str} from '@cloudflare/itty-router-openapi';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
-import { kv } from '../env';
-import { currentTs, currentTs1000 } from '../share/utils/utils';
-import { UserStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon/types';
-import { UserStoreData } from '../../lib/ptp/protobuf/PTPCommon';
-import { Pdu } from '../../lib/ptp/protobuf/BaseMsg';
+import {kv} from '../env';
+import {currentTs1000} from '../share/utils/utils';
+import {UserStoreData_Type} from '../../lib/ptp/protobuf/PTPCommon/types';
+import {UserStoreData} from '../../lib/ptp/protobuf/PTPCommon';
+import {Pdu} from '../../lib/ptp/protobuf/BaseMsg';
 
 const Body = {
   chatId: new Str({
@@ -13,8 +13,8 @@ const Body = {
   }),
   text: new Str({
     required: true,
-    example: '/getBtcPrice',
-    description: 'msg text',
+    example: '/getTopCatsBots',
+    description: 'getTopCatsBots',
   }),
 };
 
@@ -93,12 +93,12 @@ export class BotMasterAction extends WaiOpenAPIRoute {
       if (text) {
         switch (text) {
           case '/getFolder':
-            if (userStoreDataRes.chatFolders) {
+            if (userStoreDataRes && userStoreDataRes.chatFolders) {
               userStoreDataRes.chatFolders = JSON.parse(userStoreDataRes.chatFolders);
             }
             return WaiOpenAPIRoute.responseJsonData(userStoreDataRes.chatFolders);
           case '/getAuth':
-            if (userStoreDataRes.chatFolders) {
+            if (userStoreDataRes && userStoreDataRes.chatFolders) {
               userStoreDataRes.chatFolders = JSON.parse(userStoreDataRes.chatFolders);
             }
             return WaiOpenAPIRoute.responseJsonData({

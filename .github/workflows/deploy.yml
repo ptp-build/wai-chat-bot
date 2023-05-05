@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - feature-ws
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish
+        uses: cloudflare/wrangler-action@2.0.0
+        env:
+          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_TOML }}
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          CONFIG_WRANGLER_TOML: ${{ secrets.CONFIG_WRANGLER_TOML }}
+
+          preCommands: echo "*** pre command ***"
+          postCommands: |
+            echo $CONFIG_WRANGLER_TOML

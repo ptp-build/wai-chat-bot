@@ -8,45 +8,19 @@ import { AuthSessionType, genUserId } from '../service/User';
 
 export default class WaiOpenAPIRoute extends OpenAPIRoute {
   private authSession: AuthSessionType;
-  private getAddressFromSign = true;
   getAuthSession() {
     return this.authSession;
   }
   async checkIfTokenIsInvalid(request: Request) {
     const auth = request.headers.get('Authorization');
-
-    if (this.getAddressFromSign) {
-      return await this.checkTokenIsInvalid(request);
-    }
-    if (ENV.IS_PROD) {
-      if (!auth) {
-        return WaiOpenAPIRoute.responseError('Authorization required', 400);
-      }
-    }
-    if (auth) {
-      if (auth?.indexOf('Bearer ') !== 0) {
-        return WaiOpenAPIRoute.responseError('Authorization invalid', 400);
-      }
-      const token = auth.replace('Bearer ', '');
-      if (ENV.OPENAI_API_KEY && ENV.TOKENS.indexOf(token) === -1) {
-        return WaiOpenAPIRoute.responseError('token invalid', 401);
-      }
-    }
-    return false;
-  }
-  async checkTokenIsInvalid(request: Request) {
-    const auth = request.headers.get('Authorization');
-
-    if (ENV.IS_PROD) {
-      if (!auth) {
-        return WaiOpenAPIRoute.responseError('not auth', 400);
-      }
+    if (!auth) {
+      return WaiOpenAPIRoute.responseError('Authorization invalid', 400);
     }
 
     if (auth) {
       const token = auth.replace('Bearer ', '');
       if (token.indexOf('_') === -1) {
-        return WaiOpenAPIRoute.responseError('not auth', 400);
+        return WaiOpenAPIRoute.responseError('Authorization is null', 400);
       }
       const res = token.split('_');
       const sign = res[0];
@@ -55,7 +29,7 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
       const account = new Account(ts);
       const { address } = account.recoverAddressAndPubKey(Buffer.from(sign, 'hex'), ts.toString());
       if (!address) {
-        return WaiOpenAPIRoute.responseError('not auth', 400);
+        return WaiOpenAPIRoute.responseError('Authorization error', 400);
       }
       Account.setServerKv(kv);
       let authUserId = await account.getUidFromCacheByAddress(address);
@@ -71,8 +45,9 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
       };
       console.log('[checkTokenIsInvalid]', JSON.stringify(this.authSession));
     }
-    return false;
+    return false;;
   }
+
   jsonResp(params: { data: Record<string, any>; status?: number }): Response {
     return new Response(JSON.stringify(params.data), {
       headers: {

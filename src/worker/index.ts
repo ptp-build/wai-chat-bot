@@ -5,13 +5,9 @@ import {
   ChatGptBillingUsageAction,
   ChatGptCommandsAction,
 } from './controller/ChatGptController';
-import {
-  AutoGptCreateTasksAction,
-  AutoGptExecuteTaskAction,
-  AutoGptStartGoalAction,
-} from './controller/AutoGptController';
 import { BotMasterAction, BotMasterCommandsAction } from './controller/BotMasterController';
 import ProtoController from './controller/ProtoController';
+import {BotWaiAction, BotWaiCommandsAction} from "./controller/BotWaiController";
 export { WebSocketDurableObject } from './durable-object';
 
 export type EnvironmentDo = {
@@ -26,12 +22,11 @@ const iRouter = new WaiRouter({
   router.post('/api/chatgpt/usage', ChatGptBillingUsageAction);
   router.post('/api/chatgpt/commands', ChatGptCommandsAction);
 
-  router.post('/api/autoGpt/start', AutoGptStartGoalAction);
-  router.post('/api/autoGpt/execute', AutoGptExecuteTaskAction);
-  router.post('/api/autoGpt/createTasks', AutoGptCreateTasksAction);
-
   router.post('/api/master/message', BotMasterAction);
   router.post('/api/master/commands', BotMasterCommandsAction);
+
+  router.post('/api/wai/message', BotWaiAction);
+  router.post('/api/wai/commands', BotWaiCommandsAction);
 
   router.post('/api/proto', ProtoController);
 });

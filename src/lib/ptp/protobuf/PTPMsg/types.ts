@@ -33,7 +33,7 @@ export interface SendBotMsgRes_Type {
   reply?: string;
   chatId?: string;
   msgId?: number;
-  streamEnd?: boolean;
+  streamStatus?: PTPCommon.ChatGptStreamStatus;
   message?: PTPCommon.PbMsg_Type;
 }
 export interface UpdateCmdReq_Type {
@@ -43,6 +43,7 @@ export interface UpdateCmdReq_Type {
 export interface UpdateCmdRes_Type {
   commands?: PTPCommon.PbCommands_Type[];
   chatId?: string;
+  startTips?: string;
 }
 export interface UploadMsgReq_Type {
   messages?: PTPCommon.MessageStoreRow_Type[];

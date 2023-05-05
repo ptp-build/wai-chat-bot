@@ -2,6 +2,7 @@ name = "wai-chat-bot"
 main = "src/worker/index.ts"
 compatibility_date = "2022-05-03"
 compatibility_flags = ["durable_object_alarms","streams_enable_constructors"]
+account_id=""
 
 logpush = true
 node_compat = true

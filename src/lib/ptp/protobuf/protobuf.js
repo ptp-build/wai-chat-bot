@@ -655,6 +655,12 @@ var $conv_message = $createConverter([
                 }
             },
             Chats: {
+                FetchChatReq: {
+                    '$': {"1":["chatId","string",""]}
+                },
+                FetchChatRes: {
+                    '$': {"1":["payload","string",""],"100":["err","uint32",0]}
+                },
                 LoadChatsReq: {
                     '$': {"1":["limit","uint32",0],"2":["offsetDate","uint32",0],"3":["archived","bool",false],"4":["withPinned","bool",false],"5":["lastLocalServiceMessage","string",""]}
                 },
@@ -666,6 +672,9 @@ var $conv_message = $createConverter([
                 AUTH_TYPE: {
                     '@': {"AUTH_TYPE_USERNAME":0,"AUTH_TYPE_EMAIL":1,"AUTH_TYPE_MOBILE":2}
                 },
+                ChatGptStreamStatus: {
+                    '@': {"ChatGptStreamStatus_START":0,"ChatGptStreamStatus_GOING":1,"ChatGptStreamStatus_DONE":2,"ChatGptStreamStatus_ERROR":3}
+                },
                 ClientInfo: {
                     '$': {"1":["deviceModel","string",""],"2":["systemVersion","string",""],"3":["appVersion","string",""]}
                 },
@@ -673,7 +682,7 @@ var $conv_message = $createConverter([
                     '@': {"EncryptType_Wallet":0,"EncryptType_Group":1,"EncryptType_Message":2,"EncryptType_Media":3}
                 },
                 ERR: {
-                    '@': {"NO_ERROR":0,"ERR_SYSTEM":1,"ERR_AUTH_LOGIN":2,"ERR_AUTH_NEED":3}
+                    '@': {"NO_ERROR":0,"ERR_SYSTEM":1,"ERR_AUTH_LOGIN":2,"ERR_AUTH_NEED":3,"ERR_NOT_FOUND":4}
                 },
                 FileInfo: {
                     '$': {"1":["id","string",""],"2":["size","uint64",{"low":0,"high":0,"unsigned":true}],"3":["part","uint32",0],"4":["part_total","uint32",0],"5":["buf","bytes",[]],"6":["type","string",""]}
@@ -818,13 +827,13 @@ var $conv_message = $createConverter([
                     '$': {"1":["chatId","string",""],"2":["botApi","string",""],"3":["text","string",""],"4":["chatGpt","string",""],"5":["msgId","uint32",0]}
                 },
                 SendBotMsgRes: {
-                    '$': {"1":["reply","string",""],"2":["chatId","string",""],"3":["msgId","uint32",0],"4":["streamEnd","bool",false],"5":["message","default.PTP.Common.PbMsg",null]}
+                    '$': {"1":["reply","string",""],"2":["chatId","string",""],"3":["msgId","uint32",0],"4":["streamStatus","uint32",0],"5":["message","default.PTP.Common.PbMsg",null]}
                 },
                 UpdateCmdReq: {
                     '$': {"1":["botApi","string",""],"2":["chatId","string",""]}
                 },
                 UpdateCmdRes: {
-                    '$': {"1":["commands","<default.PTP.Common.PbCommands",null],"2":["chatId","string",""]}
+                    '$': {"1":["commands","<default.PTP.Common.PbCommands",null],"2":["chatId","string",""],"3":["startTips","string",""]}
                 },
                 UploadMsgReq: {
                     '$': {"1":["messages","<default.PTP.Common.MessageStoreRow",null],"2":["chatId","string",""],"3":["time","uint32",0]}
