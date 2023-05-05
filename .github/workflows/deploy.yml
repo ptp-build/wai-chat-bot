@@ -60,10 +60,10 @@ jobs:
         uses: cloudflare/wrangler-action@2.0.0
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          CONFIG_WRANGLER_WEBSOCKET_PROD_TOML: ${{ vars.CONFIG_WRANGLER_WEBSOCKET_PROD_TOML }}
+          config: ${{ vars.CONFIG_WRANGLER_WEBSOCKET_PROD_TOML }}
           preCommands: |
             npm install
-            echo $CONFIG_WRANGLER_WEBSOCKET_PROD_TOML | base64 -d > wrangler.toml
+            echo $config | base64 -d > wrangler.toml
             head -n 3 wrangler.toml
           command: publish src/worker/worker_websocket.ts --name=wai-chat-bot-websocket
 
