@@ -46,9 +46,7 @@ export interface FileInfo_Type {
 }
 
 export interface MessageStoreRow_Type {
-  message?: PbMsg_Type;
   messageId: number;
-  time?: number;
   buf?: Buffer;
 }
 
@@ -83,6 +81,20 @@ export interface PbBotInfo_Type {
   commands?: PbCommands_Type[];
   photo?: PbPhoto_Type;
   aiBot?: PbAiBot_Type;
+}
+
+export interface PbCatBot_Type {
+  cat: string;
+  userId: string;
+  firstName: string;
+  avatarHash?: string;
+  bio?: string;
+  init_system_content?: string;
+  welcome?: string;
+  outputText?: string;
+  template?: string;
+  templateSubmit?: string;
+  time: number;
 }
 
 export interface PbChat_Type {
@@ -284,6 +296,7 @@ export interface PbUser_Type {
   isSelf?: boolean;
   avatarHash?: string;
   photos?: PbPhoto_Type[];
+  updatedAt?: number;
 }
 
 export interface PbUsernames_Type {

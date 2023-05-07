@@ -3,9 +3,11 @@ import type * as PTPCommon from '../PTPCommon/types';
 
 export interface DownloadMsgReq_Type {
   chatId: string;
+  time?: number;
 }
 export interface DownloadMsgRes_Type {
-  messages?: PTPCommon.MessageStoreRow_Type[];
+  messages?: Buffer[];
+  userMessageStoreData?: PTPCommon.UserMessageStoreData_Type;
   err?: PTPCommon.ERR;
 }
 export interface GenMsgIdReq_Type {
@@ -46,10 +48,10 @@ export interface UpdateCmdRes_Type {
   startTips?: string;
 }
 export interface UploadMsgReq_Type {
-  messages?: PTPCommon.MessageStoreRow_Type[];
+  messages?: Buffer[];
   chatId: string;
-  time: number;
 }
 export interface UploadMsgRes_Type {
+  userMessageStoreData: PTPCommon.UserMessageStoreData_Type;
   err?: PTPCommon.ERR;
 }

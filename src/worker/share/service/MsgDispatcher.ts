@@ -1,18 +1,18 @@
-import { ActionCommands, getActionCommandsName } from '../../../lib/ptp/protobuf/ActionCommands';
-import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
-import { AuthSessionType, getSessionInfoFromSign } from './User';
-import { AuthLoginReq, AuthLoginRes, InitAppRes } from '../../../lib/ptp/protobuf/PTPAuth';
-import { SendBotMsgReq, SendBotMsgRes } from '../../../lib/ptp/protobuf/PTPMsg';
-import { ERR, UserStoreData_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
-import { UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
-import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
-import { ENV, kv } from '../../env';
-import { currentTs1000 } from '../utils/utils';
-import { FolderIdWai, FolderTitleWai, SERVER_USER_ID_START, UserIdFirstBot } from '../../setting';
-import { ShareBotReq, ShareBotRes } from '../../../lib/ptp/protobuf/PTPUser';
-import { requestOpenAi } from '../functions/openai';
+import {ActionCommands, getActionCommandsName} from '../../../lib/ptp/protobuf/ActionCommands';
+import {Pdu} from '../../../lib/ptp/protobuf/BaseMsg';
+import {AuthSessionType, getSessionInfoFromSign} from './User';
+import {AuthLoginReq, AuthLoginRes} from '../../../lib/ptp/protobuf/PTPAuth';
+import {SendBotMsgReq, SendBotMsgRes} from '../../../lib/ptp/protobuf/PTPMsg';
+import {ERR, UserStoreData_Type} from '../../../lib/ptp/protobuf/PTPCommon/types';
+import {UserStoreData} from '../../../lib/ptp/protobuf/PTPCommon';
+import {SyncReq, SyncRes, TopCatsReq, TopCatsRes} from '../../../lib/ptp/protobuf/PTPSync';
+import {ENV, kv} from '../../env';
+import {currentTs1000} from '../utils/utils';
+import {SERVER_USER_ID_START} from '../../setting';
+import {ShareBotReq, ShareBotRes} from '../../../lib/ptp/protobuf/PTPUser';
+import {requestOpenAi} from '../functions/openai';
 import ChatMsg from './ChatMsg';
-import { createParser } from 'eventsource-parser';
+import {createParser} from 'eventsource-parser';
 
 let dispatchers: Record<number, MsgDispatcher> = {};
 
@@ -29,27 +29,6 @@ export default class MsgDispatcher {
       dispatchers[accountId] = new MsgDispatcher(accountId);
     }
     return dispatchers[accountId];
-  }
-  async initApp() {
-    const users = [];
-    const chats = [];
-    const messages = [];
-    const chatFolders = [
-      {
-        id: FolderIdWai,
-        title: FolderTitleWai,
-        includedChatIds: [UserIdFirstBot],
-        excludedChatIds: [],
-      },
-    ];
-    this.sendPdu(
-      new InitAppRes({
-        users: JSON.stringify(users),
-        chats: JSON.stringify(chats),
-        messages: JSON.stringify(messages),
-        // chatFolders: JSON.stringify(chatFolders),
-      }).pack()
-    );
   }
   async handleAuthLoginReq(pdu: Pdu): Promise<AuthSessionType | undefined> {
     const { sign, clientInfo } = AuthLoginReq.parseMsg(pdu);
