@@ -59,8 +59,6 @@ export default class MsgDispatcher {
       // console.debug('userStoreDataRes', this.address, JSON.stringify(userStoreDataRes));
 
       if (!userStoreData?.time || userStoreData?.time < userStoreDataRes.time) {
-        userStoreDataRes = userStoreData!
-      } else {
         userStoreDataRes = userStoreData!;
         changed = true;
       }
