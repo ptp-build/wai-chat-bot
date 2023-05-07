@@ -2,15 +2,11 @@ name = "wai-chat-bot"
 main = "src/worker/index.ts"
 compatibility_date = "2022-05-03"
 compatibility_flags = ["durable_object_alarms","streams_enable_constructors"]
+account_id=""
 
 logpush = true
 node_compat = true
-type = "webpack"
 
-[build]
-experiments = true
-[build.env]
-NODE_OPTIONS = "--experimental-streams-implementation"
 [dev]
 ip = "localhost"
 
@@ -33,12 +29,12 @@ preview_bucket_name="wai-r2-preview"
 [[kv_namespaces]]
 # binding 的值 需要跟 [vars] / KV_NAMESPACE_BINDING_KEY 一致
 # 在 https://dash.cloudflare.com/ > Workers > KV : Create a namespace
-binding = "DATABASE"
+binding = "WAI_KV_PROD"
 id = ""
 preview_id = ""
 
 [vars]
-KV_NAMESPACE_BINDING_KEY="DATABASE"
+KV_NAMESPACE_BINDING_KEY="WAI_KV_PROD"
 R2_STORAGE_BINGDING_KEY="STORAGE"
 
 IS_PROD = true

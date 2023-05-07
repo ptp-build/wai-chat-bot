@@ -1,4 +1,7 @@
-import {PbChatGptModelConfig_Type} from "../lib/ptp/protobuf/PTPCommon/types";
+import { PbChatGptModelConfig_Type } from '../lib/ptp/protobuf/PTPCommon/types';
+
+export const SERVER_USER_ID_START = '20000000';
+export const SERVER_BOT_USER_ID_START = '10000000';
 
 export const UserIdFirstBot = '1000';
 export const UserIdCnPrompt = '1010';
@@ -8,7 +11,7 @@ export const UserIdChatGpt = '1012';
 export const ChatIdPrompts = '-1014';
 
 export const FolderIdWai = 1;
-export const FolderTitleWai = "Wai"
+export const FolderTitleWai = 'Wai';
 
 export const NameFirstBot = 'Wai';
 export const DEFAULT_CREATE_USER_BIO = '我是一个AI机器人';

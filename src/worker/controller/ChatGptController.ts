@@ -161,13 +161,20 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 
 		const { body } = data;
 		const apiKey = getApiKey(body);
-
+		if(!apiKey){
+			return WaiOpenAPIRoute.responseData("请输入 openAi /apiKey \n\n" +
+				"或者\n" +
+				"\n" +
+				"进入 @wai 发送 /freePlan 获得免费资格\n" +
+				"进入 @wai 发送 /buyPro 获得付费用户资格\n" +
+				"\n"
+			);
+		}
 		let systemPrompt = '';
 		if (body['systemPrompt']) {
 			systemPrompt = body['systemPrompt'];
 		}
-		const chatId = body.chatId;
-		const msgId = body.msgId;
+
 		delete body['systemPrompt'];
 		delete body['chatId'];
 		delete body['msgId'];
@@ -186,8 +193,7 @@ export class ChatGptAction extends WaiOpenAPIRoute {
 				const stream = await createStream(JSON.stringify(body), apiKey);
 				return WaiOpenAPIRoute.responseData(stream);
 			}else{
-				const res = await requestOpenAi('POST', 'v1/chat/completions', JSON.stringify(body), apiKey);
-				return res;
+				return await requestOpenAi('POST', 'v1/chat/completions', JSON.stringify(body), apiKey);
 			}
 		} catch (error) {
 			console.error(error);

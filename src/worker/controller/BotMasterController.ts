@@ -1,10 +1,10 @@
-import { Str } from '@cloudflare/itty-router-openapi';
+import {Str} from '@cloudflare/itty-router-openapi';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
-import { kv } from '../env';
-import { currentTs, currentTs1000 } from '../share/utils/utils';
-import { UserStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon/types';
-import { UserStoreData } from '../../lib/ptp/protobuf/PTPCommon';
-import { Pdu } from '../../lib/ptp/protobuf/BaseMsg';
+import {kv} from '../env';
+import {currentTs1000} from '../share/utils/utils';
+import {UserStoreData_Type} from '../../lib/ptp/protobuf/PTPCommon/types';
+import {UserStoreData} from '../../lib/ptp/protobuf/PTPCommon';
+import {Pdu} from '../../lib/ptp/protobuf/BaseMsg';
 
 const Body = {
   chatId: new Str({
@@ -13,12 +13,16 @@ const Body = {
   }),
   text: new Str({
     required: true,
-    example: '/getBtcPrice',
-    description: 'msg text',
+    example: '/getTopCatsBots',
+    description: 'getTopCatsBots',
   }),
 };
 
 const Commands = [
+  {
+    command: 'getTopCatsBots',
+    description: 'getTopCatsBots',
+  },
   {
     command: 'getTopCats',
     description: 'getTopCats',
@@ -34,6 +38,10 @@ const Commands = [
   {
     command: 'getAuth',
     description: 'getAuth',
+  },
+  {
+    command: 'getFolder',
+    description: 'getFolder',
   },
 ];
 
@@ -84,8 +92,13 @@ export class BotMasterAction extends WaiOpenAPIRoute {
       const { text } = data.body;
       if (text) {
         switch (text) {
+          case '/getFolder':
+            if (userStoreDataRes && userStoreDataRes.chatFolders) {
+              userStoreDataRes.chatFolders = JSON.parse(userStoreDataRes.chatFolders);
+            }
+            return WaiOpenAPIRoute.responseJsonData(userStoreDataRes.chatFolders);
           case '/getAuth':
-            if (userStoreDataRes.chatFolders) {
+            if (userStoreDataRes && userStoreDataRes.chatFolders) {
               userStoreDataRes.chatFolders = JSON.parse(userStoreDataRes.chatFolders);
             }
             return WaiOpenAPIRoute.responseJsonData({
@@ -93,11 +106,18 @@ export class BotMasterAction extends WaiOpenAPIRoute {
               userStoreDataRes,
             });
           case '/getTopCats':
+            // topCats.time = currentTs1000();
+            // await kv.put('topCats-cn.json', JSON.stringify(topCats));
             return WaiOpenAPIRoute.responseJsonData({
               cats: topCats.cats,
               time: topCats.time,
-              bots: topCats.bots.slice(0, 1),
             });
+
+          case '/getTopCatsBots':
+            return WaiOpenAPIRoute.responseJsonData({
+              bots: topCats.bots,
+            });
+
           case '/setTopCatsAdminUid':
             if (userStoreDataRes) {
               if (!userStoreDataRes.myBots) {
