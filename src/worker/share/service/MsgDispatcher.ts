@@ -63,7 +63,7 @@ export default class MsgDispatcher {
     if(userStoreData){
       await kv.put(
           `W_U_S_D_${authUserId}`,
-          Buffer.from(new UserStoreData(userStoreDataRes).pack().getPbData()).toString('hex')
+          Buffer.from(new UserStoreData(userStoreData).pack().getPbData()).toString('hex')
       );
     }
   }
