@@ -48,35 +48,24 @@ export default class MsgDispatcher {
   }
   async handleSyncReq(pdu: Pdu) {
     let { userStoreData } = SyncReq.parseMsg(pdu);
-    // console.debug('userStoreData', this.address, JSON.stringify(userStoreData));
     const authUserId = this.authUserId;
     const userStoreDataStr = await kv.get(`W_U_S_D_${authUserId}`);
     let userStoreDataRes: UserStoreData_Type;
-    let changed = false;
     if (userStoreDataStr) {
       const buf = Buffer.from(userStoreDataStr, 'hex');
       userStoreDataRes = UserStoreData.parseMsg(new Pdu(buf));
       // console.debug('userStoreDataRes', this.address, JSON.stringify(userStoreDataRes));
-
-      if (!userStoreData?.time || userStoreData?.time < userStoreDataRes.time) {
-
-      } else {
-        userStoreDataRes = userStoreData!;
-        changed = true;
+      if(!userStoreData){
+        this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
+        return
       }
-    } else {
-      userStoreDataRes = userStoreData!;
-      userStoreDataRes.time = currentTs1000();
-      changed = true;
     }
-
-    if (changed) {
+    if(userStoreData){
       await kv.put(
-        `W_U_S_D_${authUserId}`,
-        Buffer.from(new UserStoreData(userStoreDataRes).pack().getPbData()).toString('hex')
+          `W_U_S_D_${authUserId}`,
+          Buffer.from(new UserStoreData(userStoreDataRes).pack().getPbData()).toString('hex')
       );
     }
-    this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
   }
 
   async handleSendBotMsgReq(pdu: Pdu) {
