@@ -71,7 +71,6 @@ export default class MsgDispatcher {
     }
 
     if (changed) {
-      userStoreData = userStoreDataRes
       await kv.put(
         `W_U_S_D_${authUserId}`,
         Buffer.from(new UserStoreData(userStoreDataRes).pack().getPbData()).toString('hex')
