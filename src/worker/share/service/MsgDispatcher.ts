@@ -8,8 +8,6 @@ import {UserStoreData} from '../../../lib/ptp/protobuf/PTPCommon';
 import {SyncReq, SyncRes, TopCatsReq, TopCatsRes} from '../../../lib/ptp/protobuf/PTPSync';
 import {ENV, kv} from '../../env';
 import {currentTs1000} from '../utils/utils';
-import {SERVER_USER_ID_START} from '../../setting';
-import {ShareBotReq, ShareBotRes} from '../../../lib/ptp/protobuf/PTPUser';
 import {requestOpenAi} from '../functions/openai';
 import ChatMsg from './ChatMsg';
 import {createParser} from 'eventsource-parser';
@@ -49,7 +47,7 @@ export default class MsgDispatcher {
     return res;
   }
   async handleSyncReq(pdu: Pdu) {
-    const { userStoreData } = SyncReq.parseMsg(pdu);
+    let { userStoreData } = SyncReq.parseMsg(pdu);
     // console.debug('userStoreData', this.address, JSON.stringify(userStoreData));
     const authUserId = this.authUserId;
     const userStoreDataStr = await kv.get(`W_U_S_D_${authUserId}`);
@@ -61,7 +59,7 @@ export default class MsgDispatcher {
       // console.debug('userStoreDataRes', this.address, JSON.stringify(userStoreDataRes));
 
       if (!userStoreData?.time || userStoreData?.time < userStoreDataRes.time) {
-        this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
+        userStoreDataRes = userStoreData!
       } else {
         userStoreDataRes = userStoreData!;
         changed = true;
@@ -73,105 +71,15 @@ export default class MsgDispatcher {
     }
 
     if (changed) {
+      userStoreData = userStoreDataRes
       await kv.put(
         `W_U_S_D_${authUserId}`,
         Buffer.from(new UserStoreData(userStoreDataRes).pack().getPbData()).toString('hex')
       );
     }
+    this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
   }
 
-  async handleShareBotStopReq(pdu: Pdu) {
-    let res = ShareBotReq.parseMsg(pdu);
-    const userId = res.userId;
-    const authUserId1 = await kv.get(`W_B_U_R_${userId}`);
-    if (this.authUserId != authUserId1) {
-      this.sendPdu(
-        new ShareBotRes({
-          err: ERR.ERR_SYSTEM,
-        }).pack(),
-        pdu.getSeqNum()
-      );
-    } else {
-      const str = await kv.get('topCats-cn.json');
-      const topCats = JSON.parse(str);
-      let changed = false;
-      for (let i = 0; i < topCats.cats.length; i++) {
-        const cat = topCats.cats[i];
-        if (cat.botIds.indexOf(userId) > -1) {
-          changed = true;
-          topCats.cats[i].botIds = topCats.cats[i].botIds.filter(id => id !== userId);
-        }
-      }
-      if (changed) {
-        topCats.time = currentTs1000();
-        await kv.put('topCats-cn.json', JSON.stringify(topCats));
-      }
-      this.sendPdu(
-        new ShareBotRes({
-          err: ERR.NO_ERROR,
-        }).pack(),
-        pdu.getSeqNum()
-      );
-    }
-  }
-  async handleShareBotReq(pdu: Pdu) {
-    let res = ShareBotReq.parseMsg(pdu);
-    const userId = res.userId;
-    const authUserId1 = await kv.get(`W_B_U_R_${userId}`);
-    if (this.authUserId != authUserId1) {
-      this.sendPdu(
-        new ShareBotRes({
-          err: ERR.ERR_SYSTEM,
-        }).pack(),
-        pdu.getSeqNum()
-      );
-    } else {
-      const str = await kv.get('topCats-cn.json');
-      const topCats = JSON.parse(str);
-      let changed = false;
-      for (let i = 0; i < topCats.bots.length; i++) {
-        const bot = topCats.bots[i];
-        if (bot.userId === userId) {
-          topCats.bots[i] = {
-            ...bot,
-            ...res,
-            time: currentTs1000(),
-          };
-          break;
-        }
-      }
-
-      if (!topCats.cats.find(cat => cat.title === '用户分享')) {
-        topCats.cats.push({
-          title: '用户分享',
-          botIds: [],
-        });
-        topCats.time = currentTs1000();
-      }
-
-      if (!changed) {
-        topCats.bots.push({
-          ...res,
-          time: currentTs1000(),
-        });
-      }
-
-      if (parseInt(userId) > parseInt(SERVER_USER_ID_START)) {
-        const cat = topCats.cats.find(cat => cat.title === '用户分享');
-        if (cat.botIds.indexOf(userId) === -1) {
-          cat.botIds.push(userId);
-          topCats.time = currentTs1000();
-        }
-      }
-      await kv.put('topCats-cn.json', JSON.stringify(topCats));
-      this.sendPdu(
-        new ShareBotRes({
-          err: ERR.NO_ERROR,
-        }).pack(),
-        pdu.getSeqNum()
-      );
-    }
-  }
   async handleSendBotMsgReq(pdu: Pdu) {
     let { text, chatId, msgId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
     console.log('handleSendBotMsgReq', { text, chatId, msgId, chatGpt });
