@@ -1,20 +1,9 @@
-import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
-import {
-  SendBotMsgReq,
-  SendBotMsgRes,
-  UpdateCmdReq,
-  UpdateCmdRes,
-} from '../../../lib/ptp/protobuf/PTPMsg';
-import { ERR, PbMsg_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
-import { currentTs, sleep } from '../utils/utils';
-import { AuthLoginReq, AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
-import { AuthSessionType, getSessionInfoFromSign } from './User';
-import { createParser } from 'eventsource-parser';
-import { requestOpenAi } from '../functions/openai';
-import { ENV } from '../../env';
+import {Pdu} from '../../../lib/ptp/protobuf/BaseMsg';
+import {PbMsg_Type} from '../../../lib/ptp/protobuf/PTPCommon/types';
+import {currentTs, sleep} from '../utils/utils';
 import * as WebSocketServer from 'ws';
-import { getActionCommandsName } from '../../../lib/ptp/protobuf/ActionCommands';
-import { ChatIdPrompts } from '../../setting';
+import {getActionCommandsName} from '../../../lib/ptp/protobuf/ActionCommands';
+import {ChatIdPrompts} from '../../setting';
 
 let messageIds: number[] = [];
 export const LOCAL_MESSAGE_MIN_ID = 5e9;

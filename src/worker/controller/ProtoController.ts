@@ -17,14 +17,15 @@ import {
   DownloadUserRes,
   GenUserIdRes,
   ShareBotReq,
-  ShareBotRes, ShareBotStopReq, ShareBotStopRes,
+  ShareBotRes,
+  ShareBotStopReq,
+  ShareBotStopRes,
   UploadUserReq,
   UploadUserRes,
 } from '../../lib/ptp/protobuf/PTPUser';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
 import {PbMsg, PbUser, UserMessageStoreData} from '../../lib/ptp/protobuf/PTPCommon';
 import {OtherNotify} from '../../lib/ptp/protobuf/PTPOther';
-import {FetchChatReq, FetchChatRes} from "../../lib/ptp/protobuf/PTPChats";
 import {currentTs, currentTs1000} from "../share/utils/utils";
 
 export default class ProtoController extends WaiOpenAPIRoute {
@@ -260,6 +261,20 @@ export default class ProtoController extends WaiOpenAPIRoute {
     const { userId,updatedAt } = DownloadUserReq.parseMsg(pdu);
     const updatedAtCache = await kv.get(`wai/users/updatedAt/${userId}`);
     console.log("handleDownloadUserReq",userId,updatedAt,updatedAtCache)
+    const str = await kv.get('topCats-cn.json');
+
+    const topCats = str ? JSON.parse(str) : require("../../assets/jsons/topCats-cn.json");
+    let bot = topCats.bots.find(bot=>bot.userId === userId)
+    if(!bot){
+      const authUserIdCache = await kv.get(`W_B_U_R_${userId}`);
+      if(authUserIdCache !== authUserId){
+        return WaiOpenAPIRoute.responsePdu(
+            new DownloadUserRes({
+              err: ERR.ERR_SYSTEM,
+            }).pack()
+        );
+      }
+    }
 
     if(updatedAtCache && updatedAt < Number(updatedAtCache)){
       const res = await storage.get(`wai/users/${userId}`);

@@ -67,28 +67,36 @@ const requestBody = {
 
 const Commands = [
 	{
-		command: 'reset',
-		description: '重置ai记忆,提问只携带 systemPrompt',
+		"command": "reset",
+		"description": "重置ai记忆,提问只携带 初始化Prompt"
 	},
 	{
-		command: 'aiModel',
-		description: '设置AI模型',
+		"command": "template",
+		"description": "提问示例"
 	},
 	{
-		command: 'apiKey',
-		description: '自定义apiKey',
+		"command": "templateSubmit",
+		"description": "提问模版"
 	},
 	{
-		command: 'systemPrompt',
-		description: '初始化 systemPrompt',
+		"command": "aiModel",
+		"description": "设置AI模型"
 	},
 	{
-		command: 'maxHistoryLength',
-		description: '每次提问携带历史消息数',
+		"command": "apiKey",
+		"description": "自定义apiKey"
 	},
 	{
-		command: 'usage',
-		description: '账户余额',
+		"command": "systemPrompt",
+		"description": "系统 Prompt"
+	},
+	{
+		"command": "maxHistoryLength",
+		"description": "每次提问携带历史消息数"
+	},
+	{
+		"command": "usage",
+		"description": "账户余额"
 	},
 ];
 

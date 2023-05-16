@@ -7,7 +7,6 @@ import {ERR, UserStoreData_Type} from '../../../lib/ptp/protobuf/PTPCommon/types
 import {UserStoreData} from '../../../lib/ptp/protobuf/PTPCommon';
 import {SyncReq, SyncRes, TopCatsReq, TopCatsRes} from '../../../lib/ptp/protobuf/PTPSync';
 import {ENV, kv} from '../../env';
-import {currentTs1000} from '../utils/utils';
 import {requestOpenAi} from '../functions/openai';
 import ChatMsg from './ChatMsg';
 import {createParser} from 'eventsource-parser';
