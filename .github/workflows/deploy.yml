@@ -71,3 +71,22 @@ jobs:
             head -n 3 wrangler.toml
           command: publish src/worker/worker_websocket.ts --name=wai-chat-bot-websocket
 
+  deploy:
+    runs-on: ubuntu-latest
+    name: deploy_websocket
+    if: startsWith(github.ref, 'refs/tags/v-bot')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish
+        uses: cloudflare/wrangler-action@2.0.0
+        env:
+          CONFIG_WRANGLER_WEBSOCKET_PROD_TOML: ${{ vars.CONFIG_WRANGLER_WEBSOCKET_PROD_TOML }}
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          #base64 -i wrangler.websocket.prod.toml ===>>> CONFIG_WRANGLER_WEBSOCKET_PROD_TOML
+          preCommands: |
+            npm install
+            echo $CONFIG_WRANGLER_WEBSOCKET_PROD_TOML | base64 -d > wrangler.toml
+            head -n 3 wrangler.toml
+          command: publish src/worker/worker_websocket.ts --name=wai-chat-bot
+

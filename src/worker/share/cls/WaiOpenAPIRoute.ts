@@ -5,11 +5,19 @@ import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
 import { OpenAPIRoute } from '@cloudflare/itty-router-openapi';
 import Account from '../Account';
 import { AuthSessionType, genUserId } from '../service/User';
+import UserBalance from '../service/UserBalance';
 
+//@ts-ignore
 export default class WaiOpenAPIRoute extends OpenAPIRoute {
   private authSession: AuthSessionType;
   getAuthSession() {
     return this.authSession;
+  }
+  async getUserBalance() {
+    return await new UserBalance(this.authSession.address).getBalance();
+  }
+  async getUserTotalSpend() {
+    return await new UserBalance(this.authSession.address).getTotalSpend();
   }
   async checkIfTokenIsInvalid(request: Request) {
     const auth = request.headers.get('Authorization');
@@ -35,6 +43,7 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
       let authUserId = await account.getUidFromCacheByAddress(address);
       if (!authUserId) {
         authUserId = await genUserId();
+        await new UserBalance(authUserId).firstLogin();
         await account.saveUidFromCacheByAddress(address, authUserId);
       }
       this.authSession = {
@@ -45,7 +54,7 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
       };
       console.log('[checkTokenIsInvalid]', JSON.stringify(this.authSession));
     }
-    return false;;
+    return false;
   }
 
   jsonResp(params: { data: Record<string, any>; status?: number }): Response {

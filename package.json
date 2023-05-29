@@ -12,6 +12,7 @@
     "deploy:worker-master": "wrangler publish src/worker/worker_master.ts --name=wai-chat-bot-master -c wrangler.prod.toml",
     "deploy:worker-chatgpt": "wrangler publish src/worker/worker_chatgpt.ts --name=wai-chat-bot-chatgpt -c wrangler.prod.toml",
     "deploy:worker-storage": "wrangler publish src/worker/worker_storage.ts --name=wai-chat-bot-storage -c wrangler.prod.toml",
+    "deploy:worker": "wrangler publish src/worker/index.ts --name=wai-chat-bot -c wrangler.websocket.prod.toml",
     "logs:worker": "wrangler tail --format=pretty",
     "logs:worker:websocket": "wrangler tail --format=pretty"
   },

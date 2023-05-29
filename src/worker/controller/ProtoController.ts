@@ -1,7 +1,9 @@
-import {Pdu} from '../../lib/ptp/protobuf/BaseMsg';
-import {ActionCommands, getActionCommandsName} from '../../lib/ptp/protobuf/ActionCommands';
-import {Download, Upload} from '../share/service/File';
+import { Pdu } from '../../lib/ptp/protobuf/BaseMsg';
+import { ActionCommands, getActionCommandsName } from '../../lib/ptp/protobuf/ActionCommands';
+import { Download, Upload } from '../share/service/File';
 import {
+  CallbackButtonReq,
+  CallbackButtonRes,
   DownloadMsgReq,
   DownloadMsgRes,
   RemoveMessagesReq,
@@ -9,9 +11,9 @@ import {
   UploadMsgReq,
   UploadMsgRes,
 } from '../../lib/ptp/protobuf/PTPMsg';
-import {ERR, UserMessageStoreData_Type,} from '../../lib/ptp/protobuf/PTPCommon/types';
-import {ENV, kv, storage} from '../env';
-import {AuthSessionType} from '../share/service/User';
+import { ERR, UserMessageStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon/types';
+import { ENV, kv, storage } from '../env';
+import { AuthSessionType } from '../share/service/User';
 import {
   DownloadUserReq,
   DownloadUserRes,
@@ -24,9 +26,10 @@ import {
   UploadUserRes,
 } from '../../lib/ptp/protobuf/PTPUser';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
-import {PbMsg, PbUser, UserMessageStoreData} from '../../lib/ptp/protobuf/PTPCommon';
-import {OtherNotify} from '../../lib/ptp/protobuf/PTPOther';
-import {currentTs, currentTs1000} from "../share/utils/utils";
+import { PbMsg, PbUser, UserMessageStoreData } from '../../lib/ptp/protobuf/PTPCommon';
+import { OtherNotify } from '../../lib/ptp/protobuf/PTPOther';
+import { currentTs, currentTs1000 } from '../share/utils/utils';
+import CallbackButtonHandler from '../share/service/CallbackButtonHandler';
 
 export default class ProtoController extends WaiOpenAPIRoute {
   private authSession: AuthSessionType;
@@ -98,6 +101,8 @@ export default class ProtoController extends WaiOpenAPIRoute {
           return this.handleShareBotStopReq(Number(authUserId), pdu);
         case ActionCommands.CID_GenUserIdReq:
           return this.handleGenUserIdReq(Number(authUserId), pdu);
+        case ActionCommands.CID_CallbackButtonReq:
+          return this.handleCallbackButtonReq(Number(authUserId), pdu);
         case ActionCommands.CID_UploadReq:
           return Upload(pdu);
         default:
@@ -130,13 +135,13 @@ export default class ProtoController extends WaiOpenAPIRoute {
     if (messages && messages?.length > 0) {
       for (let i = 0; i < messages?.length; i++) {
         const buf = messages[i];
-        const msg = PbMsg.parseMsg(new Pdu(Buffer.from(buf)))
+        const msg = PbMsg.parseMsg(new Pdu(Buffer.from(buf)));
         if (!messageStorageData.messageIds?.indexOf(msg.id) > -1) {
           messageStorageData.messageIds?.push(msg.id);
         }
         await storage.put(`wai/${authUserId}/messages/${chatId}/${msg.id}`, Buffer.from(buf!));
       }
-      messageStorageData.time = currentTs1000()
+      messageStorageData.time = currentTs1000();
       await kv.put(
         `W_M_S_D_${authUserId}_${chatId}`,
         Buffer.from(new UserMessageStoreData(messageStorageData).pack().getPbData()).toString('hex')
@@ -144,16 +149,16 @@ export default class ProtoController extends WaiOpenAPIRoute {
     }
     return WaiOpenAPIRoute.responsePdu(
       new UploadMsgRes({
-        userMessageStoreData:messageStorageData!,
+        userMessageStoreData: messageStorageData!,
         err: ERR.NO_ERROR,
       }).pack()
     );
   }
 
   async handleDownloadMsgReq(authUserId: number, pdu: Pdu) {
-    let { chatId,time } = DownloadMsgReq.parseMsg(pdu);
-    if(!time){
-      time = 0
+    let { chatId, time } = DownloadMsgReq.parseMsg(pdu);
+    if (!time) {
+      time = 0;
     }
     const messages: Buffer[] = [];
     const messageStorageDataStr = await kv.get(`W_M_S_D_${authUserId}_${chatId}`);
@@ -162,10 +167,10 @@ export default class ProtoController extends WaiOpenAPIRoute {
         new Pdu(Buffer.from(messageStorageDataStr, 'hex'))
       );
       const { messageIds, messageIdsDeleted } = userMessageStoreData;
-      if(!userMessageStoreData.time){
-        userMessageStoreData.time = currentTs1000()
+      if (!userMessageStoreData.time) {
+        userMessageStoreData.time = currentTs1000();
       }
-      if(time < userMessageStoreData.time){
+      if (time < userMessageStoreData.time) {
         console.log('[handleDownloadMsgReq]', chatId, { messageIds, messageIdsDeleted });
         if (messageIds) {
           for (let i = 0; i < messageIds?.length; i++) {
@@ -174,15 +179,15 @@ export default class ProtoController extends WaiOpenAPIRoute {
               continue;
             }
             const res = await storage.get(`wai/${authUserId}/messages/${chatId}/${messageId}`);
-            if(res){
+            if (res) {
               messages.push(Buffer.from(res));
             }
           }
           return WaiOpenAPIRoute.responsePdu(
-              new DownloadMsgRes({
-                userMessageStoreData,
-                messages,
-              }).pack()
+            new DownloadMsgRes({
+              userMessageStoreData,
+              messages,
+            }).pack()
           );
         }
       }
@@ -224,31 +229,30 @@ export default class ProtoController extends WaiOpenAPIRoute {
       }
     }
     if (changed) {
-      messageStorageData.time =currentTs1000()
+      messageStorageData.time = currentTs1000();
       await kv.put(
         `W_M_S_D_${authUserId}_${chatId}`,
         Buffer.from(new UserMessageStoreData(messageStorageData).pack().getPbData()).toString('hex')
       );
-
     }
     return WaiOpenAPIRoute.responsePdu(
-        new RemoveMessagesRes({
-          err: ERR.NO_ERROR,
-        }).pack()
+      new RemoveMessagesRes({
+        err: ERR.NO_ERROR,
+      }).pack()
     );
   }
 
   async handleUploadUserReq(authUserId: number, pdu: Pdu) {
     const { userBuf } = UploadUserReq.parseMsg(pdu);
     const buf = Buffer.from(userBuf);
-    const user = PbUser.parseMsg(new Pdu(buf))
-    if(!user.updatedAt){
+    const user = PbUser.parseMsg(new Pdu(buf));
+    if (!user.updatedAt) {
       user.updatedAt = currentTs();
     }
     await storage.put(`wai/users/${user.id}`, buf);
     await kv.put(`wai/users/updatedAt/${user.id}`, user.updatedAt.toString());
 
-    console.debug(`saved userId:${user.id}`,user.updatedAt,JSON.stringify(user));
+    console.debug(`saved userId:${user.id}`, user.updatedAt, JSON.stringify(user));
 
     return WaiOpenAPIRoute.responsePdu(
       new UploadUserRes({
@@ -258,63 +262,63 @@ export default class ProtoController extends WaiOpenAPIRoute {
   }
 
   async handleDownloadUserReq(authUserId: number, pdu: Pdu) {
-    const { userId,updatedAt } = DownloadUserReq.parseMsg(pdu);
+    const { userId, updatedAt } = DownloadUserReq.parseMsg(pdu);
     const updatedAtCache = await kv.get(`wai/users/updatedAt/${userId}`);
-    console.log("handleDownloadUserReq",userId,updatedAt,updatedAtCache)
+    console.log('handleDownloadUserReq', userId, updatedAt, updatedAtCache);
     const str = await kv.get('topCats-cn.json');
 
-    const topCats = str ? JSON.parse(str) : require("../../assets/jsons/topCats-cn.json");
-    let bot = topCats.bots.find(bot=>bot.userId === userId)
-    if(!bot){
+    const topCats = str ? JSON.parse(str) : require('../../assets/jsons/topCats-cn.json');
+    let bot = topCats.bots.find(bot => bot.userId === userId);
+    if (!bot) {
       const authUserIdCache = await kv.get(`W_B_U_R_${userId}`);
-      if(authUserIdCache !== authUserId){
+      if (authUserIdCache !== authUserId) {
         return WaiOpenAPIRoute.responsePdu(
-            new DownloadUserRes({
-              err: ERR.ERR_SYSTEM,
-            }).pack()
+          new DownloadUserRes({
+            err: ERR.ERR_SYSTEM,
+          }).pack()
         );
       }
     }
 
-    if(updatedAtCache && updatedAt < Number(updatedAtCache)){
+    if (updatedAtCache && updatedAt < Number(updatedAtCache)) {
       const res = await storage.get(`wai/users/${userId}`);
-      if(res){
+      if (res) {
         return WaiOpenAPIRoute.responsePdu(
-            new DownloadUserRes({
-              userBuf:Buffer.from(res),
-              err: ERR.NO_ERROR,
-            }).pack()
+          new DownloadUserRes({
+            userBuf: Buffer.from(res),
+            err: ERR.NO_ERROR,
+          }).pack()
         );
       }
     }
     return WaiOpenAPIRoute.responsePdu(
-        new DownloadUserRes({
-          err: ERR.NO_ERROR,
-        }).pack()
+      new DownloadUserRes({
+        err: ERR.NO_ERROR,
+      }).pack()
     );
   }
 
   async handleShareBotReq(authUserId: number, pdu: Pdu) {
-    let { catBot,catTitle } = ShareBotReq.parseMsg(pdu);
-    catTitle = catTitle.trim()
+    let { catBot, catTitle } = ShareBotReq.parseMsg(pdu);
+    catTitle = catTitle.trim();
     const str = await kv.get('topCats-cn.json');
-    const chatId = catBot.userId
-    const topCats = str ? JSON.parse(str) : require("../../assets/jsons/topCats-cn.json");
+    const chatId = catBot.userId;
+    const topCats = str ? JSON.parse(str) : require('../../assets/jsons/topCats-cn.json');
 
-    let isCatExists = false
+    let isCatExists = false;
 
     for (let i = 0; i < topCats.cats.length; i++) {
-      const tapCat = topCats.cats[i]
+      const tapCat = topCats.cats[i];
       const botIds = [...new Set(tapCat.botIds)];
 
-      if(tapCat.title === catTitle){
+      if (tapCat.title === catTitle) {
         isCatExists = true;
-        if(botIds.indexOf(chatId) === -1){
+        if (botIds.indexOf(chatId) === -1) {
           topCats.cats[i].botIds.push(chatId);
         }
-      }else{
-        if(botIds.indexOf(chatId) > -1){
-          topCats.cats[i].botIds = topCats.cats[i].botIds.filter(id=>chatId !== id);
+      } else {
+        if (botIds.indexOf(chatId) > -1) {
+          topCats.cats[i].botIds = topCats.cats[i].botIds.filter(id => chatId !== id);
         }
       }
     }
@@ -324,42 +328,42 @@ export default class ProtoController extends WaiOpenAPIRoute {
         botIds: [chatId],
       });
     }
-    topCats.bots.forEach(bot=>{
-      bot.time = currentTs1000()
-    })
-    let bot = topCats.bots.find(bot=>bot.userId === chatId)
-    if(!bot){
+    topCats.bots.forEach(bot => {
+      bot.time = currentTs1000();
+    });
+    let bot = topCats.bots.find(bot => bot.userId === chatId);
+    if (!bot) {
       topCats.bots.push({
         ...catBot,
-        "time": currentTs1000()
-      })
-    }else{
+        time: currentTs1000(),
+      });
+    } else {
       for (let i = 0; i < topCats.bots.length; i++) {
-        const bot = topCats.bots[i]
-        if(bot.userId === chatId){
+        const bot = topCats.bots[i];
+        if (bot.userId === chatId) {
           topCats.bots[i] = {
             ...bot,
             ...catBot,
-            "time": currentTs1000()
-          }
-          break
+            time: currentTs1000(),
+          };
+          break;
         }
       }
     }
 
-    topCats.time = currentTs1000()
+    topCats.time = currentTs1000();
     await kv.put('topCats-cn.json', JSON.stringify(topCats));
     await kv.put('topCats-bots-cn.json', JSON.stringify(topCats.bots));
 
     return WaiOpenAPIRoute.responsePdu(
-        new ShareBotRes({
-          err: ERR.NO_ERROR,
-        }).pack()
+      new ShareBotRes({
+        err: ERR.NO_ERROR,
+      }).pack()
     );
   }
 
-  async handleShareBotStopReq(authUserId:number,pdu: Pdu) {
-    let {userId} = ShareBotStopReq.parseMsg(pdu);
+  async handleShareBotStopReq(authUserId: number, pdu: Pdu) {
+    let { userId } = ShareBotStopReq.parseMsg(pdu);
     const str = await kv.get('topCats-cn.json');
     const topCats = JSON.parse(str);
     let changed = false;
@@ -375,12 +379,29 @@ export default class ProtoController extends WaiOpenAPIRoute {
       await kv.put('topCats-cn.json', JSON.stringify(topCats));
     }
     return WaiOpenAPIRoute.responsePdu(
-        new ShareBotStopRes({
-          err: ERR.NO_ERROR,
-        }).pack()
+      new ShareBotStopRes({
+        err: ERR.NO_ERROR,
+      }).pack()
     );
   }
-
+  async handleCallbackButtonReq(authUserId: number, pdu: Pdu) {
+    console.debug(
+      '[handleCallbackButtonReq]',
+      authUserId,
+      this.getAuthSession(),
+      await this.getUserTotalSpend(),
+      await this.getUserTotalSpend()
+    );
+    let { chatId, data } = CallbackButtonReq.parseMsg(pdu);
+    const { text, inlineButtons } = await new CallbackButtonHandler().process(data);
+    return WaiOpenAPIRoute.responsePdu(
+      new CallbackButtonRes({
+        chatId,
+        text,
+        inlineButtons,
+      }).pack()
+    );
+  }
   async handleGenUserIdReq(authUserId: number, pdu: Pdu) {
     console.debug('[handleGenUserIdReq]', authUserId);
     const userIdStr = await kv.get('W_U_INCR_' + authUserId, true);

@@ -72,6 +72,7 @@ export async function createStream(
           }
           try {
             const json = JSON.parse(data);
+            console.log(data);
             const queue = encoder.encode(json.choices[0].delta.content);
             controller.enqueue(queue);
           } catch (e) {
@@ -136,9 +137,10 @@ export async function requestUsage(apiKey: string, start_date: string, end_date:
     total.hard_limit_usd = Math.round(total.hard_limit_usd * 100) / 100;
   }
   console.log('total', total);
+  const key = `apkKey: 【 ${apiKey.substring(0, 6)}***${apiKey.substring(apiKey.length - 3)} 】`;
   return {
     used: response.total_usage,
     subscription: total.hard_limit_usd,
-    text: `本月已用: ${response.total_usage} / 总: ${total.hard_limit_usd} USD`,
+    text: `${key}\n\n已用: ${response.total_usage} / 总: ${total.hard_limit_usd} USD`,
   };
 }
