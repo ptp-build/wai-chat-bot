@@ -14,10 +14,10 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
     return this.authSession;
   }
   async getUserBalance() {
-    return await new UserBalance(this.authSession.address).getBalance();
+    return await new UserBalance(this.authSession.authUserId).getBalance();
   }
   async getUserTotalSpend() {
-    return await new UserBalance(this.authSession.address).getTotalSpend();
+    return await new UserBalance(this.authSession.authUserId).getTotalSpend();
   }
   async checkIfTokenIsInvalid(request: Request) {
     const auth = request.headers.get('Authorization');
@@ -44,7 +44,7 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
       if (!authUserId) {
         authUserId = await genUserId();
         await new UserBalance(authUserId).firstLogin();
-        await account.saveUidFromCacheByAddress(address, authUserId);
+        await account.saveUidFromCacheByAddress(authUserId, authUserId);
       }
       this.authSession = {
         address,
