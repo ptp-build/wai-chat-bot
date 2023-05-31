@@ -9,6 +9,7 @@ import { BotMasterAction, BotMasterCommandsAction } from './controller/BotMaster
 import ProtoController from './controller/ProtoController';
 import { BotWaiAction, BotWaiCommandsAction } from './controller/BotWaiController';
 import { TelegramBotSendMessageAction } from './controller/TelegramController';
+import { WechatBotSendMessageAction } from './controller/WechatController';
 export { WebSocketDurableObject } from './durable-object';
 
 export type EnvironmentDo = {
@@ -30,6 +31,7 @@ const iRouter = new WaiRouter({
   router.post('/api/wai/commands', BotWaiCommandsAction);
 
   router.post('/api/telegram/bot/sendMessage', TelegramBotSendMessageAction);
+  router.post('/api/wechat/bot/sendMessage', WechatBotSendMessageAction);
 
   router.post('/api/proto', ProtoController);
 });

@@ -5,6 +5,10 @@ export type Environment = {
   DO_WEBSOCKET?: DurableObjectNamespace;
   IS_PROD: boolean;
   OPENAI_API_KEY: string;
+  WECHAT_APPID: string;
+  WECHAT_APPSECRET: string;
+  WECHAT_NOTIFY_USER: string;
+  WECHAT_NOTIFY_TEMPLATE_ID: string;
   KV_NAMESPACE_BINDING_KEY: string;
   R2_STORAGE_BINDING_KEY: string;
   SERVER_USER_ID_START: string;
@@ -15,6 +19,10 @@ export type Environment = {
 export const ENV: Environment = {
   DO_WEBSOCKET: undefined,
   IS_PROD: true,
+  WECHAT_APPID: '',
+  WECHAT_APPSECRET: '',
+  WECHAT_NOTIFY_USER: '',
+  WECHAT_NOTIFY_TEMPLATE_ID: '',
   OPENAI_API_KEY: '',
   KV_NAMESPACE_BINDING_KEY: 'DATABASE',
   R2_STORAGE_BINDING_KEY: 'STORAGE',
