@@ -67,34 +67,34 @@ const requestBody = {
 };
 
 const Commands = [
-  {
-    command: 'reset',
-    description: '重置ai记忆,提问只携带 初始化Prompt',
-  },
-  {
-    command: 'template',
-    description: '提问示例',
-  },
-  {
-    command: 'templateSubmit',
-    description: '提问模版',
-  },
-  {
-    command: 'aiModel',
-    description: '设置AI模型',
-  },
-  {
-    command: 'apiKey',
-    description: '自定义apiKey',
-  },
-  {
-    command: 'systemPrompt',
-    description: '系统 Prompt',
-  },
-  {
-    command: 'maxHistoryLength',
-    description: '每次提问携带历史消息数',
-  },
+  // {
+  //   command: 'reset',
+  //   description: '重置ai记忆,提问只携带 初始化Prompt',
+  // },
+  // {
+  //   command: 'template',
+  //   description: '提问示例',
+  // },
+  // {
+  //   command: 'templateSubmit',
+  //   description: '提问模版',
+  // },
+  // {
+  //   command: 'aiModel',
+  //   description: '设置AI模型',
+  // },
+  // {
+  //   command: 'apiKey',
+  //   description: '自定义apiKey',
+  // },
+  // {
+  //   command: 'systemPrompt',
+  //   description: '系统 Prompt',
+  // },
+  // {
+  //   command: 'maxHistoryLength',
+  //   description: '每次提问携带历史消息数',
+  // },
   {
     command: 'usage',
     description: '账户余额',

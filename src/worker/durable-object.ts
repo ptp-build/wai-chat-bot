@@ -2,8 +2,11 @@ import { Pdu } from '../lib/ptp/protobuf/BaseMsg';
 import { AuthSessionType } from './share/service/User';
 import { OtherNotify } from '../lib/ptp/protobuf/PTPOther';
 import { ERR } from '../lib/ptp/protobuf/PTPCommon/types';
-import { initEnv } from './env';
+import { Environment, initEnv } from './env';
 import MsgDispatcher from './share/service/MsgDispatcher';
+import { ActionCommands, getActionCommandsName } from '../lib/ptp/protobuf/ActionCommands';
+import { SendMsgRes, SendTextMsgReq } from '../lib/ptp/protobuf/PTPMsg';
+import { currentTs } from './share/utils/utils';
 
 interface AccountUser {
   websocket: WebSocket;
@@ -18,12 +21,11 @@ const healthCheckInterval = 10e3;
 
 export class WebSocketDurableObject {
   accounts: Map<string, AccountUser>;
-  authUserAddressAccountMap: Map<string, string[]> = new Map();
   pings: Map<string, number>;
   storage: DurableObjectStorage;
   dolocation: string;
 
-  constructor(state: DurableObjectState, env: Record<string, any>) {
+  constructor(state: DurableObjectState, env: Environment) {
     initEnv(env);
     // We will put the WebSocket objects for each client into `websockets`
     this.accounts = new Map();
@@ -36,13 +38,33 @@ export class WebSocketDurableObject {
   }
 
   async fetch(request: Request) {
+    if (request.url.endsWith('sendMessage')) {
+      console.log('[fetch]', request.url, this.accounts);
+      const requestBody = await request.json();
+      let hasSent = false;
+      this.accounts.forEach((user, key) => {
+        if (user.authSession?.authUserId === requestBody.toUserId) {
+          console.log('[send]', user);
+          try {
+            user.websocket.send(
+              new SendMsgRes({
+                replyText: requestBody.text,
+                senderId: requestBody.fromUserId,
+                chatId: requestBody.chatId,
+                date: currentTs(),
+              })
+                .pack()
+                .getPbData()
+            );
+            hasSent = true;
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      });
+      return new Response(null, { status: hasSent ? 200 : 404 });
+    }
     const requestMetadata = request.cf;
-
-    // To accept the WebSocket request, we create a WebSocketPair (which is like a socketpair,
-    // i.e. two WebSockets that talk to each other), we return one end of the pair in the
-    // response, and we operate on the other end. Note that this API is not part of the
-    // Fetch API standard; unfortunately, the Fetch API / Service Workers specs do not define
-    // any way to act as a WebSocket server today.
     let pair = new WebSocketPair();
     //@ts-ignore
     const [client, server] = Object.values(pair);
@@ -76,6 +98,19 @@ export class WebSocketDurableObject {
     webSocket.addEventListener('message', async msg => {
       try {
         const pdu = new Pdu(Buffer.from(msg.data));
+        const dispatcher = MsgDispatcher.getInstance(accountId);
+        switch (pdu.getCommandId()) {
+          case ActionCommands.CID_AuthLoginReq:
+            const res = await dispatcher.handleAuthLoginReq(pdu);
+            console.log('CID_AuthLoginReq', res);
+            if (res) {
+              this.accounts.set(accountId, {
+                ...this.accounts.get(accountId),
+                authSession: res,
+              });
+            }
+            return;
+        }
         await MsgDispatcher.handleWsMsg(accountId, pdu);
       } catch (err) {
         console.error(err);
@@ -85,14 +120,6 @@ export class WebSocketDurableObject {
     // On "close" and "error" events, remove the WebSocket from the webSockets list
     let closeOrErrorHandler = () => {
       console.log('user', accountId);
-      const account = this.accounts.get(accountId);
-      if (account && account.authSession?.address && this.authUserAddressAccountMap) {
-        let accountIds = this.authUserAddressAccountMap.get(account.authSession!.address);
-        if (accountIds) {
-          accountIds = accountIds.filter(id => id !== accountId);
-          this.authUserAddressAccountMap.set(account.authSession!.address, accountIds);
-        }
-      }
       this.accounts.delete(accountId);
     };
     webSocket.addEventListener('close', closeOrErrorHandler);

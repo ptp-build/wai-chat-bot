@@ -7,6 +7,10 @@ export default class CallbackButtonHandler {
       return new CallbackButtonHandlerPay().process(data);
     }
 
+    if (data.startsWith('server/api/prompts')) {
+      return new CallbackButtonHandlerPay().process(data);
+    }
+
     return {
       text,
       inlineButtons,

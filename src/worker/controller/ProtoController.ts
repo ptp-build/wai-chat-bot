@@ -15,9 +15,16 @@ import { ERR, UserMessageStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon
 import { ENV, kv, storage } from '../env';
 import { AuthSessionType } from '../share/service/User';
 import {
+  CreateUserReq,
+  CreateUserRes,
   DownloadUserReq,
   DownloadUserRes,
+  FetchBotSettingReq,
+  FetchBotSettingRes,
+  GenUserIdReq,
   GenUserIdRes,
+  SaveBotSettingReq,
+  SaveBotSettingRes,
   ShareBotReq,
   ShareBotRes,
   ShareBotStopReq,
@@ -30,6 +37,7 @@ import { PbMsg, PbUser, UserMessageStoreData } from '../../lib/ptp/protobuf/PTPC
 import { OtherNotify } from '../../lib/ptp/protobuf/PTPOther';
 import { currentTs, currentTs1000 } from '../share/utils/utils';
 import CallbackButtonHandler from '../share/service/CallbackButtonHandler';
+import UserSetting from '../share/service/UserSetting';
 
 export default class ProtoController extends WaiOpenAPIRoute {
   private authSession: AuthSessionType;
@@ -99,6 +107,12 @@ export default class ProtoController extends WaiOpenAPIRoute {
           return this.handleShareBotReq(Number(authUserId), pdu);
         case ActionCommands.CID_ShareBotStopReq:
           return this.handleShareBotStopReq(Number(authUserId), pdu);
+        case ActionCommands.CID_SaveBotSettingReq:
+          return this.handleSaveBotSettingReq(Number(authUserId), pdu);
+        case ActionCommands.CID_CreateUserReq:
+          return this.handleCreateUserReq(Number(authUserId), pdu);
+        case ActionCommands.CID_FetchBotSettingReq:
+          return this.handleFetchBotSettingReq(Number(authUserId), pdu);
         case ActionCommands.CID_GenUserIdReq:
           return this.handleGenUserIdReq(Number(authUserId), pdu);
         case ActionCommands.CID_CallbackButtonReq:
@@ -160,6 +174,7 @@ export default class ProtoController extends WaiOpenAPIRoute {
     if (!time) {
       time = 0;
     }
+    console.debug('[handleDownloadMsgReq]', chatId, time);
     const messages: Buffer[] = [];
     const messageStorageDataStr = await kv.get(`W_M_S_D_${authUserId}_${chatId}`);
     if (messageStorageDataStr) {
@@ -249,6 +264,9 @@ export default class ProtoController extends WaiOpenAPIRoute {
     if (!user.updatedAt) {
       user.updatedAt = currentTs();
     }
+    if (user.id === '1') {
+      user.id = this.getAuthSession().authUserId;
+    }
     await storage.put(`wai/users/${user.id}`, buf);
     await kv.put(`wai/users/updatedAt/${user.id}`, user.updatedAt.toString());
 
@@ -265,21 +283,6 @@ export default class ProtoController extends WaiOpenAPIRoute {
     const { userId, updatedAt } = DownloadUserReq.parseMsg(pdu);
     const updatedAtCache = await kv.get(`wai/users/updatedAt/${userId}`);
     console.log('handleDownloadUserReq', userId, updatedAt, updatedAtCache);
-    const str = await kv.get('topCats-cn.json');
-
-    const topCats = str ? JSON.parse(str) : require('../../assets/jsons/topCats-cn.json');
-    let bot = topCats.bots.find(bot => bot.userId === userId);
-    if (!bot) {
-      const authUserIdCache = await kv.get(`W_B_U_R_${userId}`);
-      if (authUserIdCache !== authUserId) {
-        return WaiOpenAPIRoute.responsePdu(
-          new DownloadUserRes({
-            err: ERR.ERR_SYSTEM,
-          }).pack()
-        );
-      }
-    }
-
     if (updatedAtCache && updatedAt < Number(updatedAtCache)) {
       const res = await storage.get(`wai/users/${userId}`);
       if (res) {
@@ -296,6 +299,31 @@ export default class ProtoController extends WaiOpenAPIRoute {
         err: ERR.NO_ERROR,
       }).pack()
     );
+  }
+
+  async handleCreateUserReq(authUserId: number, pdu: Pdu) {
+    let { username } = CreateUserReq.parseMsg(pdu);
+    console.debug('[handleCreateUserReq]', username);
+    await kv.put('W_U_USERNAME_' + username, authUserId.toString());
+    return WaiOpenAPIRoute.responsePdu(new CreateUserRes({}).pack());
+  }
+  async handleFetchBotSettingReq(authUserId: number, pdu: Pdu) {
+    let { key } = FetchBotSettingReq.parseMsg(pdu);
+    console.debug('[handleFetchBotSettingReq]', key);
+    const value = await new UserSetting(this.getAuthSession().authUserId).getValue(key);
+    return WaiOpenAPIRoute.responsePdu(
+      new FetchBotSettingRes({
+        key,
+        value,
+      }).pack()
+    );
+  }
+
+  async handleSaveBotSettingReq(authUserId: number, pdu: Pdu) {
+    let { key, value } = SaveBotSettingReq.parseMsg(pdu);
+    console.debug('[handleSaveBotSettingReq]', key, value);
+    await new UserSetting(this.getAuthSession().authUserId).setValue(key, value);
+    return WaiOpenAPIRoute.responsePdu(new SaveBotSettingRes({}).pack());
   }
 
   async handleShareBotReq(authUserId: number, pdu: Pdu) {
@@ -361,7 +389,6 @@ export default class ProtoController extends WaiOpenAPIRoute {
       }).pack()
     );
   }
-
   async handleShareBotStopReq(authUserId: number, pdu: Pdu) {
     let { userId } = ShareBotStopReq.parseMsg(pdu);
     const str = await kv.get('topCats-cn.json');
@@ -404,7 +431,17 @@ export default class ProtoController extends WaiOpenAPIRoute {
   }
   async handleGenUserIdReq(authUserId: number, pdu: Pdu) {
     console.debug('[handleGenUserIdReq]', authUserId);
-    const userIdStr = await kv.get('W_U_INCR_' + authUserId, true);
+    const { username } = GenUserIdReq.parseMsg(pdu);
+    if (username) {
+      if (await kv.get('W_U_USERNAME_' + username)) {
+        return WaiOpenAPIRoute.responsePdu(
+          new GenUserIdRes({
+            err: ERR.ERR_SYSTEM,
+          }).pack()
+        );
+      }
+    }
+    const userIdStr = await kv.get('USER_INCR', true);
     let userId = parseInt(ENV.SERVER_USER_ID_START);
     if (userIdStr) {
       userId = parseInt(userIdStr) + 1;
@@ -414,7 +451,7 @@ export default class ProtoController extends WaiOpenAPIRoute {
     } else {
       userId += 1;
     }
-    await kv.put('W_U_INCR_' + authUserId, userId.toString());
+    await kv.put('USER_INCR', userId.toString());
     await kv.put(`W_B_U_R_${userId}`, authUserId.toString());
     return WaiOpenAPIRoute.responsePdu(
       new GenUserIdRes({

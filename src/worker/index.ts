@@ -7,7 +7,8 @@ import {
 } from './controller/ChatGptController';
 import { BotMasterAction, BotMasterCommandsAction } from './controller/BotMasterController';
 import ProtoController from './controller/ProtoController';
-import {BotWaiAction, BotWaiCommandsAction} from "./controller/BotWaiController";
+import { BotWaiAction, BotWaiCommandsAction } from './controller/BotWaiController';
+import { TelegramBotSendMessageAction } from './controller/TelegramController';
 export { WebSocketDurableObject } from './durable-object';
 
 export type EnvironmentDo = {
@@ -27,6 +28,8 @@ const iRouter = new WaiRouter({
 
   router.post('/api/wai/message', BotWaiAction);
   router.post('/api/wai/commands', BotWaiCommandsAction);
+
+  router.post('/api/telegram/bot/sendMessage', TelegramBotSendMessageAction);
 
   router.post('/api/proto', ProtoController);
 });

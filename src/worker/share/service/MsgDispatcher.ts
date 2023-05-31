@@ -1,15 +1,23 @@
-import {ActionCommands, getActionCommandsName} from '../../../lib/ptp/protobuf/ActionCommands';
-import {Pdu} from '../../../lib/ptp/protobuf/BaseMsg';
-import {AuthSessionType, getSessionInfoFromSign} from './User';
-import {AuthLoginReq, AuthLoginRes} from '../../../lib/ptp/protobuf/PTPAuth';
-import {SendBotMsgReq, SendBotMsgRes} from '../../../lib/ptp/protobuf/PTPMsg';
-import {ERR, UserStoreData_Type} from '../../../lib/ptp/protobuf/PTPCommon/types';
-import {UserStoreData} from '../../../lib/ptp/protobuf/PTPCommon';
-import {SyncReq, SyncRes, TopCatsReq, TopCatsRes} from '../../../lib/ptp/protobuf/PTPSync';
-import {ENV, kv} from '../../env';
-import {requestOpenAi} from '../functions/openai';
+import { ActionCommands, getActionCommandsName } from '../../../lib/ptp/protobuf/ActionCommands';
+import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
+import { AuthSessionType, getSessionInfoFromSign } from './User';
+import { AuthLoginReq, AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
+import {
+  SendBotMsgReq,
+  SendBotMsgRes,
+  SendMsgRes,
+  SendTextMsgReq,
+} from '../../../lib/ptp/protobuf/PTPMsg';
+import { ERR, UserStoreData_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
+import { PbUser, UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
+import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
+import { ENV, kv, storage } from '../../env';
+import { requestOpenAi } from '../functions/openai';
 import ChatMsg from './ChatMsg';
-import {createParser} from 'eventsource-parser';
+import { createParser } from 'eventsource-parser';
+import { currentTs } from '../utils/utils';
+import UserSetting from './UserSetting';
+import { TelegramBot } from './Telegram';
 
 let dispatchers: Record<number, MsgDispatcher> = {};
 
@@ -54,19 +62,97 @@ export default class MsgDispatcher {
       const buf = Buffer.from(userStoreDataStr, 'hex');
       userStoreDataRes = UserStoreData.parseMsg(new Pdu(buf));
       // console.debug('userStoreDataRes', this.address, JSON.stringify(userStoreDataRes));
-      if(!userStoreData){
+      if (!userStoreData) {
         this.sendPdu(new SyncRes({ userStoreData: userStoreDataRes }).pack());
-        return
+        return;
       }
     }
-    if(userStoreData){
+    if (userStoreData) {
       await kv.put(
-          `W_U_S_D_${authUserId}`,
-          Buffer.from(new UserStoreData(userStoreData).pack().getPbData()).toString('hex')
+        `W_U_S_D_${authUserId}`,
+        Buffer.from(new UserStoreData(userStoreData).pack().getPbData()).toString('hex')
       );
     }
   }
+  async handleSendTextMsgReq(pdu: Pdu) {
+    let req = SendTextMsgReq.parseMsg(pdu);
+    const { authUserId } = this;
+    console.debug('handleSendTextMsgReq', req);
+    const { text, chatId, msgId, replyToUserId } = req;
+    const res = await storage.get(`wai/users/${chatId}`);
+    if (res) {
+      const chatOwnerUserId = await kv.get(`W_B_U_R_${chatId}`);
+      if (chatOwnerUserId !== authUserId) {
+        const user = PbUser.parseMsg(new Pdu(Buffer.from(res)));
+        const tg = await new UserSetting(chatOwnerUserId).getValue(chatId + '/link/tg');
+        console.log(authUserId, chatOwnerUserId, tg);
 
+        // const dd = await new UserSetting(chatOwnerUserId).getValue(chatId + '/link/dd');
+        //
+        //
+        if (tg && tg.split('@').length === 2) {
+          const [tgToken, tgChatId] = tg.split('@');
+          let url = 'https://wai.chat/#' + chatId;
+          const request = new Request('https://wai.chat/sendMessage', {
+            method: 'POST',
+            body: JSON.stringify({
+              toUserId: chatOwnerUserId,
+              fromUserId: authUserId,
+              text,
+              chatId,
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          const resDo = await ENV.DO_WEBSOCKET!.get(ENV.DO_WEBSOCKET!.idFromName('/ws')).fetch(
+            request
+          );
+          if (resDo.status === 404) {
+            new TelegramBot(tgToken)
+              .replyButtons(
+                text,
+                [
+                  [
+                    {
+                      text: `${user.firstName}`,
+                      url,
+                    },
+                  ],
+                ],
+                tgChatId
+              )
+              .catch(console.error);
+          }
+        }
+      } else {
+        const request = new Request('https://wai.chat/sendMessage', {
+          method: 'POST',
+          body: JSON.stringify({
+            toUserId: replyToUserId,
+            fromUserId: chatId,
+            text,
+            chatId,
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        await ENV.DO_WEBSOCKET!.get(ENV.DO_WEBSOCKET!.idFromName('/ws')).fetch(request);
+      }
+    }
+
+    this.sendPdu(
+      new SendMsgRes({
+        chatId,
+        msgId,
+        senderId: chatId,
+        date: currentTs(),
+        replyText: '',
+      }).pack(),
+      pdu.getSeqNum()
+    );
+  }
   async handleSendBotMsgReq(pdu: Pdu) {
     let { text, chatId, msgId, chatGpt } = SendBotMsgReq.parseMsg(pdu);
     console.log('handleSendBotMsgReq', { text, chatId, msgId, chatGpt });
@@ -226,13 +312,10 @@ export default class MsgDispatcher {
     console.log(
       '[onMessage]',
       getActionCommandsName(pdu.getCommandId()),
-      pdu.getSeqNum(),
-      pdu.getPbData().slice(0, 16)
+      pdu.getSeqNum()
+      // pdu.getPbData().slice(0, 16)
     );
     switch (pdu.getCommandId()) {
-      case ActionCommands.CID_AuthLoginReq:
-        await dispatcher.handleAuthLoginReq(pdu);
-        break;
       case ActionCommands.CID_SyncReq:
         await dispatcher.handleSyncReq(pdu);
         break;
@@ -244,6 +327,9 @@ export default class MsgDispatcher {
         break;
       case ActionCommands.CID_SendBotMsgReq:
         await dispatcher.handleSendBotMsgReq(pdu);
+        break;
+      case ActionCommands.CID_SendTextMsgReq:
+        await dispatcher.handleSendTextMsgReq(pdu);
         break;
       case ActionCommands.CID_ShareBotReq:
         await dispatcher.handleShareBotReq(pdu);

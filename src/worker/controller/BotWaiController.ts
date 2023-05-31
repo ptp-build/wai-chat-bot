@@ -1,7 +1,6 @@
 import { Str } from '@cloudflare/itty-router-openapi';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
 import { kv } from '../env';
-import { currentTs1000 } from '../share/utils/utils';
 import { UserStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon/types';
 import { UserStoreData } from '../../lib/ptp/protobuf/PTPCommon';
 import { Pdu } from '../../lib/ptp/protobuf/BaseMsg';
