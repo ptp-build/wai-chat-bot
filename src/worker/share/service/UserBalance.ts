@@ -1,6 +1,7 @@
 import { kv } from '../../env';
 const BALANCE_TOKENS_KEY = 'U_B_T_K';
 const TOTAL_SPEND_TOKENS_KEY = 'U_S_T_K';
+const TOTAL_EARN_TOKENS_KEY = 'U_E_T_K';
 
 export default class UserBalance {
   private readonly authUserId: string;
@@ -21,6 +22,13 @@ export default class UserBalance {
     await kv.put(`${BALANCE_TOKENS_KEY}_${this.authUserId}`, newBalance.toString());
   }
 
+  async addEarnTokens(amount: number) {
+    const balance = await this.getTotalEarn();
+    const newBalance = balance + amount;
+    console.log('[addEarnTokens]', this.authUserId, { amount, newBalance });
+    await kv.put(`${TOTAL_EARN_TOKENS_KEY}_${this.authUserId}`, newBalance.toString());
+  }
+
   async deductTokens(amount: number) {
     const totalSpend = await this.getTotalSpend();
     const balance = await this.getBalance();
@@ -39,6 +47,11 @@ export default class UserBalance {
 
   async getTotalSpend() {
     const str = await kv.get(`${TOTAL_SPEND_TOKENS_KEY}_${this.authUserId}`);
+    return Number(str || '0');
+  }
+
+  async getTotalEarn() {
+    const str = await kv.get(`${TOTAL_EARN_TOKENS_KEY}_${this.authUserId}`);
     return Number(str || '0');
   }
 }

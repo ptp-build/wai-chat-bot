@@ -1,66 +1,143 @@
 import { createParser } from 'eventsource-parser';
-import { ENV } from '../../env';
+// import {
+//   encode,
+// } from 'gpt-tokenizer'
+import UserBalance from "../service/UserBalance";
+import {User} from "../service/User";
+import {MsgBot} from "../service/msg/MsgBot";
 
 const OPENAI_URL = 'api.openai.com';
 const DEFAULT_PROTOCOL = 'https';
 const PROTOCOL = DEFAULT_PROTOCOL;
 const BASE_URL = OPENAI_URL;
+//
+// export async function translate(content: string) {
+//   const res = await requestOpenAi(
+//     'POST',
+//     'v1/chat/completions',
+//     JSON.stringify({
+//       messages: [
+//         {
+//           role: 'user',
+//           content,
+//         },
+//       ],
+//       stream: false,
+//       model: 'gpt-3.5-turbo',
+//       temperature: 0.5,
+//       max_tokens: 2000,
+//       presence_penalty: 0,
+//     }),
+//     ENV.OPENAI_API_KEY
+//   );
+//
+//   const json = await res.json();
+//   return json.choices[0].message.content;
+// }
 
-export async function translate(content: string) {
-  const res = await requestOpenAi(
-    'POST',
-    'v1/chat/completions',
-    JSON.stringify({
-      messages: [
-        {
-          role: 'user',
-          content,
-        },
-      ],
-      stream: false,
-      model: 'gpt-3.5-turbo',
-      temperature: 0.5,
-      max_tokens: 2000,
-      presence_penalty: 0,
-    }),
-    ENV.OPENAI_API_KEY
-  );
-
-  const json = await res.json();
-  return json.choices[0].message.content;
-}
-
-export async function requestOpenAi(method: string, path: string, body?: string, apiKey?: string) {
-  // console.log('[requestOpenAi]', body);
-  if (apiKey) {
-    console.log('[requestOpenAi] apiKey', apiKey.substring(apiKey.length - 4));
-  } else {
-    console.warn('[requestOpenAi] apiKey is null');
-  }
-  return fetch(`${PROTOCOL}://${BASE_URL}/${path}`, {
+export async function requestOpenAi(method: string, path: string, body: Record<string, any>, apiKey: string,
+                                    chatId: string,
+                                    msgId: number,
+                                    msgDate: number,
+                                    msgAskId: number,
+                                    msgAskDate: number,
+                                    authUserId: string,
+                                    stream:boolean = false) {
+  const res = await fetch(`${PROTOCOL}://${BASE_URL}/${path}`, {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Authorization': `Bearer ${apiKey}`,
     },
     method,
-    body,
+    body:JSON.stringify(body),
   });
+  if(stream){
+    return res
+  }else{
+    const json = await res.json();
+    console.log("[requestOpenAi res]",JSON.stringify(json))
+    await handleAskResult(body,chatId,msgId,msgDate,msgAskId,msgAskDate,authUserId,json.choices[0].message.content,json.usage)
+    return json
+  }
 }
 
-export async function createStream(
-  body: string,
+export async function handleAskResult(
+    body: Record<string, any>,
+    chatId: string,
+    msgId: number,
+    msgDate: number,
+    msgAskId: number,
+    msgAskDate: number,
+    authUserId: string,
+    resultText:string,
+    resultUsage?:Record<string, any>
+){
+  // console.log('[handleAskResult]', JSON.stringify(body));
+  const {messages} = body
+  const askTxt = messages[messages.length - 1].content;
+  // let contents = []
+  // for (let i = 0; i < messages.length; i++) {
+    // const message = messages[i]
+    // contents.push([message.role,message.content])
+    // contents += "\n"+message.role + ":" + message.content
+  // }
+  let prompt_tokens = 0;
+  let completion_tokens = 0;
+  let total_tokens = 0;
+  // console.log(encode(JSON.stringify(messages)).length,contents)
+  if(!resultUsage){
+    // prompt_tokens = encode(JSON.stringify(messages)).length;
+    // completion_tokens = encode(resultText).length;
+    total_tokens = completion_tokens + prompt_tokens
+  }else{
+    prompt_tokens = resultUsage!.prompt_tokens
+    completion_tokens = resultUsage!.completion_tokens
+    total_tokens = resultUsage!.total_tokens
+  }
+  console.log("[handleAskResult]",{
+    chatId,
+    msgId,
+    msgDate,
+    msgAskId,
+    msgAskDate,
+    authUserId
+  },{prompt_tokens,completion_tokens,total_tokens},{askTxt,resultText})
+
+  if(msgAskId){
+    await new MsgBot(authUserId,chatId,authUserId,askTxt,msgAskId,msgAskDate).saveMsg()
+  }
+
+  if(msgId){
+    await new MsgBot(authUserId,chatId,chatId,resultText,msgId,msgDate).saveMsg()
+    await new UserBalance(authUserId).deductTokens(total_tokens)
+    const ownerUserId = await User.getBotOwnerUserID(chatId)
+    if(ownerUserId && ownerUserId !== authUserId && await User.getBotIsPublic(chatId)){
+      await new UserBalance(ownerUserId).addEarnTokens(Math.ceil(total_tokens * 0.05))
+    }
+  }
+}
+export async function requestOpenAiStream(
+  body: Record<string, any>,
   apiKey: string,
-  chatId?: string,
-  messageId?: number
+  chatId: string,
+  msgId: number,
+  msgDate: number,
+  msgAskId: number,
+  msgAskDate: number,
+  authUserId: string,
 ) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  const res = await requestOpenAi('POST', 'v1/chat/completions', body, apiKey);
+  const res = await requestOpenAi(
+      'POST', 'v1/chat/completions', body, apiKey,chatId,msgId,msgDate,msgAskId,msgAskDate,authUserId,true);
   return new ReadableStream({
     async cancel(reason) {
       console.error(reason);
     },
+
     async start(controller) {
+      let txt = ""
+      let token_len = 0
       function onParse(event: any) {
         // console.log(event);
         if (event.type === 'event') {
@@ -68,12 +145,19 @@ export async function createStream(
           // https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
           if (data === '[DONE]') {
             controller.close();
+            handleAskResult(body,chatId,msgId,msgDate,msgAskId,msgAskDate,authUserId,txt)
             return;
           }
           try {
             const json = JSON.parse(data);
-            console.log(data);
-            const queue = encoder.encode(json.choices[0].delta.content);
+            // console.log(data);
+            const c = json.choices[0].delta.content
+            if(c){
+              // token_len += encode(c).length
+              // console.log("token",c,encode(c),encode(c).length,token_len)
+              txt += c;
+            }
+            const queue = encoder.encode(c);
             controller.enqueue(queue);
           } catch (e) {
             controller.error(e);
@@ -102,14 +186,21 @@ export async function createStream(
 }
 
 export async function requestUsage(apiKey: string, start_date: string, end_date: string) {
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Authorization': `Bearer ${apiKey}`,
+  }
+  const method = "GET"
+  const url = `${PROTOCOL}://${BASE_URL}`
   const [used, subs] = await Promise.all([
-    requestOpenAi(
-      'GET',
-      `dashboard/billing/usage?start_date=${start_date}&end_date=${end_date}`,
-      undefined,
-      apiKey
-    ),
-    requestOpenAi('GET', `dashboard/billing/subscription`, undefined, apiKey),
+    fetch(`${url}/dashboard/billing/usage?start_date=${start_date}&end_date=${end_date}`, {
+      headers,
+      method
+    }),
+    fetch(`${url}/dashboard/billing/subscription`, {
+      headers,
+      method
+    })
   ]);
 
   const response = (await used.json()) as {

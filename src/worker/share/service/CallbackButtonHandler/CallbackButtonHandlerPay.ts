@@ -1,10 +1,16 @@
+import CallbackButtonHandler from './index';
+
 export default class CallbackButtonHandlerPay {
+  private handler: CallbackButtonHandler;
+  constructor(handler: CallbackButtonHandler) {
+    this.handler = handler;
+  }
   async process(data: string) {
     let text, inlineButtons;
     const t = data.split('/');
     console.log(t);
 
-    if (data.startsWith('server/api/buy/tokens')) {
+    if (data.startsWith('server/api/token/buy/tokens')) {
       if (t.length === 6) {
         const orderId = t[t.length - 1];
         const payType = t[t.length - 2];
@@ -67,43 +73,43 @@ $5.99
       }
     }
     switch (data) {
-      case 'server/api/buy/tokens':
+      case 'server/api/token/buy/tokens':
         text = '选择支付方式';
         inlineButtons = JSON.stringify([
           [
             {
               type: 'callback',
               text: '谷歌支付 Google Pay (android app only 测试)',
-              data: 'server/api/buy/tokens/google_pay',
+              data: 'server/api/token/buy/tokens/google_pay',
             },
           ],
           [
             {
               type: 'callback',
               text: '苹果支付 Apple Pay (android app only 测试)',
-              data: 'server/api/buy/tokens/apple_pay',
+              data: 'server/api/token/buy/tokens/apple_pay',
             },
           ],
           [
             {
               type: 'callback',
               text: '💎 数字货币 (USDT)',
-              data: 'server/api/buy/tokens/crypto',
+              data: 'server/api/token/buy/tokens/crypto',
             },
           ],
           [
             {
               type: 'callback',
               text: '🌎💳 支付宝/微信/Paypal/Visa/Master',
-              data: 'server/api/buy/tokens/global',
+              data: 'server/api/token/buy/tokens/global',
             },
           ],
         ]);
         break;
-      case 'server/api/buy/tokens/global':
-      case 'server/api/buy/tokens/crypto':
-      case 'server/api/buy/tokens/apple_pay':
-      case 'server/api/buy/tokens/google_pay':
+      case 'server/api/token/buy/tokens/global':
+      case 'server/api/token/buy/tokens/crypto':
+      case 'server/api/token/buy/tokens/apple_pay':
+      case 'server/api/token/buy/tokens/google_pay':
         text = '选择购买数量?';
         inlineButtons = JSON.stringify([
           [
@@ -129,20 +135,31 @@ $5.99
           // ],
         ]);
         break;
-      case 'server/api/free/plan':
-        // text =
-        //   '💌 You can invite friend and get 3000 free tokens!\n' +
-        //   '\n' +
-        //   'Just forward the message below to your friend:\n' +
-        //   "- When your friend starts the bot, you'll get free tokens\n" +
-        //   '- You can invite up to 3 friends (you used 0/3 invites)\n' +
-        //   '- Your friend has to use the bot for the first time with your invite link' +
-        //   '\n' +
-        //   '\n' +
-        //   'You are invited to ChatGPT (GPT-4) bot! Tap this link to start:\n' +
-        //   '🚀 Start the bot';
-
-        text = 'soon...';
+      case 'server/api/token/earn/plan':
+        text =
+          '💌 创建机器人，设为公开，分享机器人，赚取Token\n' +
+          '\n' +
+          '- 创建机器人AI机器人\n' +
+          '- 发动 /ai > 设置公开机器人\n' +
+          '- 分享机器人到社交媒体\n' +
+          '- 赚取好友5%的Token使用\n' +
+          '- 兑换赚取的Token\n' +
+          '\n';
+        break;
+      case 'server/api/token/exchange':
+        text = '🔁 兑换将赚取的Token转化成您的可使用Token\n' + '\n点击确认兑换' + '\n';
+        inlineButtons = JSON.stringify([
+          [
+            {
+              type: 'callback',
+              text: '✅ 确认',
+              data: 'server/api/token/exchange/confirm',
+            },
+          ],
+        ]);
+        break;
+      case 'server/api/token/exchange/confirm':
+        text = await this.handler.exchangeConfirm()
         break;
     }
     return {

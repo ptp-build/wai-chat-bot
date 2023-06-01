@@ -13,6 +13,9 @@ export default class WaiOpenAPIRoute extends OpenAPIRoute {
   getAuthSession() {
     return this.authSession;
   }
+  async getUserTotalEarn() {
+    return await new UserBalance(this.authSession.authUserId).getTotalEarn();
+  }
   async getUserBalance() {
     return await new UserBalance(this.authSession.authUserId).getBalance();
   }

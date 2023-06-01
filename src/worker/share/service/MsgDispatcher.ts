@@ -18,6 +18,7 @@ import { createParser } from 'eventsource-parser';
 import { currentTs } from '../utils/utils';
 import UserSetting from './UserSetting';
 import { TelegramBot } from './Telegram';
+import {MsgBot} from "./msg/MsgBot";
 
 let dispatchers: Record<number, MsgDispatcher> = {};
 
@@ -78,7 +79,7 @@ export default class MsgDispatcher {
     let req = SendTextMsgReq.parseMsg(pdu);
     const { authUserId } = this;
     console.debug('handleSendTextMsgReq', req);
-    const { text, chatId, msgId, replyToUserId } = req;
+    const { text, chatId, msgDate,msgId, replyToUserId } = req;
     const res = await storage.get(`wai/users/${chatId}`);
     if (res) {
       const chatOwnerUserId = await kv.get(`W_B_U_R_${chatId}`);
@@ -86,7 +87,6 @@ export default class MsgDispatcher {
         const user = PbUser.parseMsg(new Pdu(Buffer.from(res)));
         const tg = await new UserSetting(chatOwnerUserId).getValue(chatId + '/link/tg');
         console.log(authUserId, chatOwnerUserId, tg);
-
         // const dd = await new UserSetting(chatOwnerUserId).getValue(chatId + '/link/dd');
         //
         //
@@ -126,19 +126,22 @@ export default class MsgDispatcher {
           }
         }
       } else {
-        const request = new Request('https://wai.chat/sendMessage', {
-          method: 'POST',
-          body: JSON.stringify({
-            toUserId: replyToUserId,
-            fromUserId: chatId,
-            text,
-            chatId,
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        await ENV.DO_WEBSOCKET!.get(ENV.DO_WEBSOCKET!.idFromName('/ws')).fetch(request);
+        if(replyToUserId){
+          const request = new Request('https://wai.chat/sendMessage', {
+            method: 'POST',
+            body: JSON.stringify({
+              toUserId: replyToUserId,
+              fromUserId: chatId,
+              text,
+              chatId,
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          await ENV.DO_WEBSOCKET!.get(ENV.DO_WEBSOCKET!.idFromName('/ws')).fetch(request);
+        }
+        await new MsgBot(authUserId,chatId,"1",text,msgId!,msgDate).saveMsg()
       }
     }
 

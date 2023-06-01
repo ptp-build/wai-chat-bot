@@ -29,6 +29,7 @@
     "ethereumjs-wallet": "^1.0.2",
     "eventsource-parser": "^1.0.0",
     "express": "^4.16.3",
+    "gpt-tokenizer": "^2.0.0",
     "node-fetch": "^3.3.1",
     "openai": "^3.2.1",
     "password-validator": "^5.3.0",

@@ -1,8 +1,7 @@
 import { Bool, Int, Query, Str } from '@cloudflare/itty-router-openapi';
 import WaiOpenAPIRoute from '../share/cls/WaiOpenAPIRoute';
-import { createStream, requestOpenAi, requestUsage } from '../share/functions/openai';
+import {requestOpenAiStream, requestOpenAi, requestUsage, handleAskResult} from '../share/functions/openai';
 import { ENV } from '../env';
-import UserBalance from '../share/service/UserBalance';
 
 const Message = {
   role: new Str({
@@ -27,10 +26,25 @@ const requestBody = {
     example: '10001',
     description: 'chatId',
   }),
-  msgId: new Str({
+  msgAskDate: new Int({
+    required: false,
+    example: 1,
+    description: 'msgDateAsk',
+  }),
+  msgAskId: new Int({
+    required: false,
+    example: 1,
+    description: 'msgIdAsk',
+  }),
+  msgId: new Int({
     required: false,
     example: 1,
     description: 'msgId',
+  }),
+  msgDate: new Int({
+    required: false,
+    example: 1,
+    description: 'msgDate',
   }),
   apiKey: new Str({
     example: '',
@@ -65,41 +79,6 @@ const requestBody = {
       '话题新鲜度 (presence_penalty): 值越大，越有可能扩展到新话题,-2 < presence_penalty < 2',
   }),
 };
-
-const Commands = [
-  // {
-  //   command: 'reset',
-  //   description: '重置ai记忆,提问只携带 初始化Prompt',
-  // },
-  // {
-  //   command: 'template',
-  //   description: '提问示例',
-  // },
-  // {
-  //   command: 'templateSubmit',
-  //   description: '提问模版',
-  // },
-  // {
-  //   command: 'aiModel',
-  //   description: '设置AI模型',
-  // },
-  // {
-  //   command: 'apiKey',
-  //   description: '自定义apiKey',
-  // },
-  // {
-  //   command: 'systemPrompt',
-  //   description: '系统 Prompt',
-  // },
-  // {
-  //   command: 'maxHistoryLength',
-  //   description: '每次提问携带历史消息数',
-  // },
-  {
-    command: 'usage',
-    description: '账户余额',
-  },
-];
 
 function getApiKeyFromHttpBodyOrEnv(body: Record<string, any>) {
   let apiKey;
@@ -152,26 +131,37 @@ export class ChatGptBillingUsageAction extends WaiOpenAPIRoute {
       }
     } else {
       let balance = await this.getUserBalance();
+      let totalEarn = await this.getUserTotalEarn();
       let totalSpend = await this.getUserTotalSpend();
       return WaiOpenAPIRoute.responseJson({
         used: totalSpend,
         subscription: balance,
-        text: `🟢 余额： ${balance} tokens ， (总消耗： ${totalSpend} tokens)\n\n获取更多:`,
+        text: `✅ 余额：${balance} Tokens ， (总消耗： ${totalSpend} Tokens)
+        
+🎉 赚取： ${totalEarn} Tokens
+        \n\n获取更多:`,
         inlineButtons: [
           [
             {
               type: 'callback',
               text: '🥑 购买',
-              data: 'server/api/buy/tokens',
+              data: 'server/api/token/buy/tokens',
             },
           ],
-          // [
-          //   {
-          //     type: 'callback',
-          //     text: '💌 免费资格',
-          //     data: 'server/api/free/plan',
-          //   },
-          // ],
+          [
+            {
+              type: 'callback',
+              text: '💌 赚取',
+              data: 'server/api/token/earn/plan',
+            },
+          ],
+          [
+            {
+              type: 'callback',
+              text: '🔁 兑换',
+              data: 'server/api/token/exchange',
+            },
+          ],
         ],
       });
     }
@@ -193,27 +183,31 @@ export class ChatGptAction extends WaiOpenAPIRoute {
     if (res) {
       return res;
     }
-
     const { body } = data;
     const apiKey = getApiKeyFromHttpBodyOrEnv(body);
-    if (!apiKey) {
-      return WaiOpenAPIRoute.responseData(
-        '请输入 openAi /apiKey \n\n' +
-          '或者\n' +
-          '\n' +
-          '进入 @wai 发送 /freePlan 获得免费资格\n' +
-          '进入 @wai 发送 /buyPro 获得付费用户资格\n' +
-          '\n'
-      );
+    if(!body.apiKey){
+      const balance = await this.getUserBalance()
+      if(balance <= 0){
+        return WaiOpenAPIRoute.responseData(
+            `\n您的Token 余额不足 发送 /usage 获取更多Token!\n`
+        );
+      }
     }
     let systemPrompt = '';
     if (body['systemPrompt']) {
       systemPrompt = body['systemPrompt'];
     }
-
+    const chatId = body['chatId']
+    const msgId = body['msgId']
+    const msgDate = body['msgDate']
+    const msgAskId = body['msgAskId']
+    const msgAskDate = body['msgAskDate']
     delete body['systemPrompt'];
     delete body['chatId'];
     delete body['msgId'];
+    delete body['msgDate'];
+    delete body['msgAskId'];
+    delete body['msgAskDate'];
 
     body.messages.unshift({
       role: 'system',
@@ -224,17 +218,39 @@ export class ChatGptAction extends WaiOpenAPIRoute {
         delete message['date'];
       }
     });
+    const {authUserId} = this.getAuthSession();
 
     try {
       if (body.stream) {
-        const stream = await createStream(JSON.stringify(body), apiKey);
+        const stream = await requestOpenAiStream(
+            body,
+            apiKey,
+            chatId,
+            msgId,
+            msgDate,
+            msgAskId,
+            msgAskDate,
+            authUserId,
+        );
         return WaiOpenAPIRoute.responseData(stream);
       } else {
-        return await requestOpenAi('POST', 'v1/chat/completions', JSON.stringify(body), apiKey);
+        const res = await requestOpenAi(
+            'POST', 'v1/chat/completions',
+            body, apiKey,
+            chatId,
+            msgId,
+            msgDate,
+            msgAskId,
+            msgAskDate,
+            authUserId,
+            false
+        );
+        return WaiOpenAPIRoute.responseJson(res);
       }
     } catch (error) {
-      console.error(error);
-      return WaiOpenAPIRoute.responseError('system error');
+      const msg = "Invoke OpenAi Error,Try again later"
+      console.error(msg,error);
+      return WaiOpenAPIRoute.responseData(msg);
     }
   }
 }
@@ -250,7 +266,7 @@ export class ChatGptCommandsAction extends WaiOpenAPIRoute {
   };
   async handle(request: Request, data: Record<string, any>) {
     return {
-      commands: Commands,
+      commands: [],
     };
   }
 }

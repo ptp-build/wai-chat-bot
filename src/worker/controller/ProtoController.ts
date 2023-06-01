@@ -5,7 +5,7 @@ import {
   CallbackButtonReq,
   CallbackButtonRes,
   DownloadMsgReq,
-  DownloadMsgRes,
+  DownloadMsgRes, MsgListReq, MsgListRes,
   RemoveMessagesReq,
   RemoveMessagesRes,
   UploadMsgReq,
@@ -13,7 +13,7 @@ import {
 } from '../../lib/ptp/protobuf/PTPMsg';
 import { ERR, UserMessageStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon/types';
 import { ENV, kv, storage } from '../env';
-import { AuthSessionType } from '../share/service/User';
+import {AuthSessionType, User} from '../share/service/User';
 import {
   CreateUserReq,
   CreateUserRes,
@@ -38,6 +38,8 @@ import { OtherNotify } from '../../lib/ptp/protobuf/PTPOther';
 import { currentTs, currentTs1000 } from '../share/utils/utils';
 import CallbackButtonHandler from '../share/service/CallbackButtonHandler';
 import UserSetting from '../share/service/UserSetting';
+import {MsgBot} from "../share/service/msg/MsgBot";
+import {MsgBotPublic} from "../share/service/msg/MsgBotPublic";
 
 export default class ProtoController extends WaiOpenAPIRoute {
   private authSession: AuthSessionType;
@@ -102,7 +104,9 @@ export default class ProtoController extends WaiOpenAPIRoute {
         case ActionCommands.CID_RemoveMessagesReq:
           return this.handleRemoveMessagesReq(Number(authUserId), pdu);
         case ActionCommands.CID_DownloadMsgReq:
-          return this.handleDownloadMsgReq(Number(authUserId), pdu);
+          return this.handleDownloadMsgReq(authUserId, pdu);
+        case ActionCommands.CID_MsgListReq:
+          return this.handleMsgListReq(authUserId, pdu);
         case ActionCommands.CID_ShareBotReq:
           return this.handleShareBotReq(Number(authUserId), pdu);
         case ActionCommands.CID_ShareBotStopReq:
@@ -168,87 +172,62 @@ export default class ProtoController extends WaiOpenAPIRoute {
       }).pack()
     );
   }
-
-  async handleDownloadMsgReq(authUserId: number, pdu: Pdu) {
-    let { chatId, time } = DownloadMsgReq.parseMsg(pdu);
-    if (!time) {
-      time = 0;
-    }
-    console.debug('[handleDownloadMsgReq]', chatId, time);
-    const messages: Buffer[] = [];
-    const messageStorageDataStr = await kv.get(`W_M_S_D_${authUserId}_${chatId}`);
-    if (messageStorageDataStr) {
-      let userMessageStoreData = UserMessageStoreData.parseMsg(
-        new Pdu(Buffer.from(messageStorageDataStr, 'hex'))
-      );
-      const { messageIds, messageIdsDeleted } = userMessageStoreData;
-      if (!userMessageStoreData.time) {
-        userMessageStoreData.time = currentTs1000();
-      }
-      if (time < userMessageStoreData.time) {
-        console.log('[handleDownloadMsgReq]', chatId, { messageIds, messageIdsDeleted });
-        if (messageIds) {
-          for (let i = 0; i < messageIds?.length; i++) {
-            const messageId = messageIds[i];
-            if (messageIdsDeleted && messageIdsDeleted.indexOf(messageId) > -1) {
-              continue;
-            }
-            const res = await storage.get(`wai/${authUserId}/messages/${chatId}/${messageId}`);
-            if (res) {
-              messages.push(Buffer.from(res));
-            }
-          }
-          return WaiOpenAPIRoute.responsePdu(
-            new DownloadMsgRes({
-              userMessageStoreData,
-              messages,
-            }).pack()
-          );
+  async handleMsgListReq(authUserId: string, pdu: Pdu) {
+    let { chatId, msgIds } = MsgListReq.parseMsg(pdu);
+    const userInfo = await User.getUserInfoFromKv(chatId)
+    const msgList = []
+    if(userInfo){
+      for (let i = 0; i < msgIds?.length; i++) {
+        if (msgIds) {
+          const msgId = msgIds[i]
+          let msg = await MsgBot.getMsg(authUserId,chatId,msgId)
+          msgList.push(msg)
         }
       }
     }
+    console.log(msgList)
     return WaiOpenAPIRoute.responsePdu(
-      new DownloadMsgRes({
-        err: ERR.NO_ERROR,
-      }).pack()
+        new MsgListRes({
+          chatId,
+          msgList
+        }).pack()
+    );
+  }
+
+  async handleDownloadMsgReq(authUserId: string, pdu: Pdu) {
+    let { chatId, msgIds } = DownloadMsgReq.parseMsg(pdu);
+    console.debug('[handleDownloadMsgReq]', chatId, msgIds );
+    const msgIdsCache = await MsgBot.getMsgIds(authUserId,chatId)
+    const msgList = []
+    for (let i = 0; i < msgIdsCache.length; i++) {
+      if(msgIds?.indexOf(msgIdsCache[i]) === -1){
+        msgList.push(await MsgBot.getMsg(this.authSession.authUserId,chatId,msgIdsCache[i]))
+      }
+    }
+    console.log("[MsgBot]",msgList)
+    return WaiOpenAPIRoute.responsePdu(
+        new DownloadMsgRes({
+          chatId,
+          msgList
+        }).pack()
     );
   }
 
   async handleRemoveMessagesReq(authUserId: number, pdu: Pdu) {
     const { chatId, messageIds } = RemoveMessagesReq.parseMsg(pdu);
-    const messageStorageDataStr = await kv.get(`W_M_S_D_${authUserId}_${chatId}`);
-    let messageStorageData: UserMessageStoreData_Type = {
-      time: currentTs1000(),
-      chatId,
-      messageIds: [],
-      messageIdsDeleted: [],
-    };
-    if (messageStorageDataStr) {
-      messageStorageData = UserMessageStoreData.parseMsg(
-        new Pdu(Buffer.from(messageStorageDataStr, 'hex'))
-      );
-    }
-    console.log('handleRemoveMessagesReq', chatId, messageIds, messageStorageData);
-
-    let changed = false;
+    let msgIds = await MsgBot.getMsgIds(this.authSession.authUserId,chatId)
     if (messageIds && messageIds.length > 0) {
-      for (let i = 0; i < messageIds.length; i++) {
-        const messageId = messageIds[i];
-        if (messageStorageData.messageIds?.indexOf(messageId) > -1) {
-          if (!messageStorageData.messageIdsDeleted) {
-            messageStorageData.messageIdsDeleted = [];
-          }
-          messageStorageData.messageIdsDeleted?.push(messageId);
-          changed = true;
+      const msgIdsNew = []
+
+      for (let i = 0; i < msgIds.length; i++) {
+        const msgId = msgIds[i];
+        if(messageIds.indexOf(msgId) === -1){
+          msgIdsNew.push(msgId)
         }
       }
-    }
-    if (changed) {
-      messageStorageData.time = currentTs1000();
-      await kv.put(
-        `W_M_S_D_${authUserId}_${chatId}`,
-        Buffer.from(new UserMessageStoreData(messageStorageData).pack().getPbData()).toString('hex')
-      );
+      if(msgIdsNew.length !== msgIds.length){
+        await MsgBot.saveMsgIds(this.authSession.authUserId,chatId,msgIdsNew)
+      }
     }
     return WaiOpenAPIRoute.responsePdu(
       new RemoveMessagesRes({
@@ -267,7 +246,7 @@ export default class ProtoController extends WaiOpenAPIRoute {
     if (user.id === '1') {
       user.id = this.getAuthSession().authUserId;
     }
-    await storage.put(`wai/users/${user.id}`, buf);
+    await storage.put(`wai/users/${user.id}`, Buffer.from(new PbUser(user).pack().getPbData()));
     await kv.put(`wai/users/updatedAt/${user.id}`, user.updatedAt.toString());
 
     console.debug(`saved userId:${user.id}`, user.updatedAt, JSON.stringify(user));
@@ -280,8 +259,12 @@ export default class ProtoController extends WaiOpenAPIRoute {
   }
 
   async handleDownloadUserReq(authUserId: number, pdu: Pdu) {
-    const { userId, updatedAt } = DownloadUserReq.parseMsg(pdu);
+    let { userId, updatedAt } = DownloadUserReq.parseMsg(pdu);
+    if(userId === "1"){
+      userId = this.getAuthSession().authUserId
+    }
     const updatedAtCache = await kv.get(`wai/users/updatedAt/${userId}`);
+
     console.log('handleDownloadUserReq', userId, updatedAt, updatedAtCache);
     if (updatedAtCache && updatedAt < Number(updatedAtCache)) {
       const res = await storage.get(`wai/users/${userId}`);
@@ -420,7 +403,10 @@ export default class ProtoController extends WaiOpenAPIRoute {
       await this.getUserTotalSpend()
     );
     let { chatId, data } = CallbackButtonReq.parseMsg(pdu);
-    const { text, inlineButtons } = await new CallbackButtonHandler().process(data);
+    const { text, inlineButtons } = await new CallbackButtonHandler({
+      authSession: this.authSession,
+      chatId: chatId,
+    }).process(data);
     return WaiOpenAPIRoute.responsePdu(
       new CallbackButtonRes({
         chatId,

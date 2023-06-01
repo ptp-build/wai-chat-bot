@@ -1,4 +1,3 @@
-let i = 0;
 export default class CloudFlareKv {
   private db: any;
   static cache: Record<string, any> = {};
@@ -6,25 +5,17 @@ export default class CloudFlareKv {
     this.db = db;
   }
   async put(key: string, value: any) {
-    console.debug('[kv put]', i++, key);
-    CloudFlareKv.cache[key] = value;
+    console.debug('[kv put]', key,value);
     return this.db.put(key, value);
   }
 
   async get(key: string, force?: boolean) {
-    force = true;
-    if (!force && CloudFlareKv.cache[key] !== undefined) {
-      return CloudFlareKv.cache[key];
-    } else {
-      // console.debug('[kv get]', i++, key);
-      CloudFlareKv.cache[key] = await this.db.get(key);
-      return CloudFlareKv.cache[key];
-    }
+    console.debug('[kv get]', key);
+    return await this.db.get(key);
   }
 
   async delete(key: string) {
-    console.debug('[kv delete]', i++, key);
-    delete CloudFlareKv.cache[key];
+    console.debug('[kv delete]', key);
     return this.db.delete(key);
   }
 
@@ -37,7 +28,6 @@ export default class CloudFlareKv {
         prefix: options.prefix,
         cursor: cur,
       });
-      console.debug('[kv list]', i++);
       rows.push(...keys);
       cur = cursor;
     } while (cur);

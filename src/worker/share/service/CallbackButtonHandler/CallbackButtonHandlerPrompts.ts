@@ -1,4 +1,10 @@
-export default class CallbackButtonHandlerPromps {
+import CallbackButtonHandler from './index';
+
+export default class CallbackButtonHandlerPrompts {
+  private handler: CallbackButtonHandler;
+  constructor(handler: CallbackButtonHandler) {
+    this.handler = handler;
+  }
   async process(data: string) {
     let text, inlineButtons;
     const t = data.split('/');
