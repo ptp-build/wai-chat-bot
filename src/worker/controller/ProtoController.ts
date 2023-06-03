@@ -5,7 +5,9 @@ import {
   CallbackButtonReq,
   CallbackButtonRes,
   DownloadMsgReq,
-  DownloadMsgRes, MsgListReq, MsgListRes,
+  DownloadMsgRes,
+  MsgListReq,
+  MsgListRes,
   RemoveMessagesReq,
   RemoveMessagesRes,
   UploadMsgReq,
@@ -13,7 +15,7 @@ import {
 } from '../../lib/ptp/protobuf/PTPMsg';
 import { ERR, UserMessageStoreData_Type } from '../../lib/ptp/protobuf/PTPCommon/types';
 import { ENV, kv, storage } from '../env';
-import {AuthSessionType, User} from '../share/service/User';
+import { AuthSessionType, User } from '../share/service/User';
 import {
   CreateUserReq,
   CreateUserRes,
@@ -38,8 +40,8 @@ import { OtherNotify } from '../../lib/ptp/protobuf/PTPOther';
 import { currentTs, currentTs1000 } from '../share/utils/utils';
 import CallbackButtonHandler from '../share/service/CallbackButtonHandler';
 import UserSetting from '../share/service/UserSetting';
-import {MsgBot} from "../share/service/msg/MsgBot";
-import {MsgBotPublic} from "../share/service/msg/MsgBotPublic";
+import { MsgBot } from '../share/service/msg/MsgBot';
+import { MsgBotPublic } from '../share/service/msg/MsgBotPublic';
 
 export default class ProtoController extends WaiOpenAPIRoute {
   private authSession: AuthSessionType;
@@ -174,59 +176,77 @@ export default class ProtoController extends WaiOpenAPIRoute {
   }
   async handleMsgListReq(authUserId: string, pdu: Pdu) {
     let { chatId, msgIds } = MsgListReq.parseMsg(pdu);
-    const userInfo = await User.getUserInfoFromKv(chatId)
-    const msgList = []
-    if(userInfo){
+    const userInfo = await User.getUserInfoFromKv(chatId);
+    const msgList = [];
+    if (userInfo) {
       for (let i = 0; i < msgIds?.length; i++) {
         if (msgIds) {
-          const msgId = msgIds[i]
-          let msg = await MsgBot.getMsg(authUserId,chatId,msgId)
-          msgList.push(msg)
+          const msgId = msgIds[i];
+          let msg = await MsgBot.getMsg(authUserId, chatId, msgId);
+          msgList.push(msg);
         }
       }
     }
-    console.log(msgList)
+    console.log(msgList);
     return WaiOpenAPIRoute.responsePdu(
-        new MsgListRes({
-          chatId,
-          msgList
-        }).pack()
+      new MsgListRes({
+        chatId,
+        msgList,
+      }).pack()
     );
   }
 
   async handleDownloadMsgReq(authUserId: string, pdu: Pdu) {
     let { chatId, msgIds } = DownloadMsgReq.parseMsg(pdu);
-    console.debug('[handleDownloadMsgReq]', chatId, msgIds );
-    const msgIdsCache = await MsgBot.getMsgIds(authUserId,chatId)
-    const msgList = []
+    const msgIdsCache = await MsgBot.getMsgIds(authUserId, chatId);
+    console.debug('[handleDownloadMsgReq]', { chatId, msgIds, msgIdsCache });
+
+    let msgList = [];
     for (let i = 0; i < msgIdsCache.length; i++) {
-      if(msgIds?.indexOf(msgIdsCache[i]) === -1){
-        msgList.push(await MsgBot.getMsg(this.authSession.authUserId,chatId,msgIdsCache[i]))
+      if (!msgIds || msgIds?.indexOf(msgIdsCache[i]) === -1) {
+        msgList.push(await MsgBot.getMsg(this.authSession.authUserId, chatId, msgIdsCache[i]));
       }
     }
-    console.log("[MsgBot]",msgList)
+    const isBotPublic = await User.getBotIsPublic(chatId);
+    const ownerUserId = await User.getBotOwnerUserID(chatId);
+    if (ownerUserId && ownerUserId !== authUserId && isBotPublic) {
+      const pubMsgList = await MsgBotPublic.getMsgIds(chatId);
+      if (pubMsgList.length > 0) {
+        for (let i = 0; i < pubMsgList.length; i++) {
+          if (
+            !msgIds ||
+            (msgIds?.indexOf(pubMsgList[i]) === -1 && msgIdsCache.indexOf(pubMsgList[i]) === -1)
+          ) {
+            msgList.push(await MsgBotPublic.getMsg(chatId, pubMsgList[i]));
+          }
+        }
+      }
+    }
+    msgList = msgList.filter(id => !!id);
+    console.log('[MsgBot]', msgList);
     return WaiOpenAPIRoute.responsePdu(
-        new DownloadMsgRes({
-          chatId,
-          msgList
-        }).pack()
+      new DownloadMsgRes({
+        chatId,
+        msgList,
+      }).pack()
     );
   }
 
-  async handleRemoveMessagesReq(authUserId: number, pdu: Pdu) {
+  async handleRemoveMessagesReq(authUserId, pdu: Pdu) {
     const { chatId, messageIds } = RemoveMessagesReq.parseMsg(pdu);
-    let msgIds = await MsgBot.getMsgIds(this.authSession.authUserId,chatId)
+    let msgIds = await MsgBot.getMsgIds(this.authSession.authUserId, chatId);
     if (messageIds && messageIds.length > 0) {
-      const msgIdsNew = []
+      const msgIdsNew = [];
 
       for (let i = 0; i < msgIds.length; i++) {
         const msgId = msgIds[i];
-        if(messageIds.indexOf(msgId) === -1){
-          msgIdsNew.push(msgId)
+        if (messageIds.indexOf(msgId) === -1) {
+          msgIdsNew.push(msgId);
+          await MsgBot.deleteMsg(authUserId, chatId, msgId);
         }
       }
-      if(msgIdsNew.length !== msgIds.length){
-        await MsgBot.saveMsgIds(this.authSession.authUserId,chatId,msgIdsNew)
+      if (msgIdsNew.length !== msgIds.length) {
+        await MsgBot.saveMsgIds(this.authSession.authUserId, chatId, msgIdsNew);
       }
     }
     return WaiOpenAPIRoute.responsePdu(
@@ -260,8 +280,8 @@ export default class ProtoController extends WaiOpenAPIRoute {
 
   async handleDownloadUserReq(authUserId: number, pdu: Pdu) {
     let { userId, updatedAt } = DownloadUserReq.parseMsg(pdu);
-    if(userId === "1"){
-      userId = this.getAuthSession().authUserId
+    if (userId === '1') {
+      userId = this.getAuthSession().authUserId;
     }
     const updatedAtCache = await kv.get(`wai/users/updatedAt/${userId}`);
 

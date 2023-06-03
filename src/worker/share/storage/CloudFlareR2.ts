@@ -6,14 +6,17 @@ export default class CloudFlareR2 {
 	}
 
 	async put(path: string, data: any) {
+		console.debug("[storage put]",path)
 		return await this.invoke({ action: 'PUT', path, data });
 	}
 
 	async get(path: string) {
+		console.debug("[storage get]",path)
 		return await this.invoke({ action: 'GET', path });
 	}
 
 	async delete(path: string) {
+		console.debug("[storage delete]",path)
 		return await this.invoke({ action: 'DELETE', path });
 	}
 

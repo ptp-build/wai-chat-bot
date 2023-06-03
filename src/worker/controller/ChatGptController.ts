@@ -185,14 +185,7 @@ export class ChatGptAction extends WaiOpenAPIRoute {
     }
     const { body } = data;
     const apiKey = getApiKeyFromHttpBodyOrEnv(body);
-    if(!body.apiKey){
-      const balance = await this.getUserBalance()
-      if(balance <= 0){
-        return WaiOpenAPIRoute.responseData(
-            `\n您的Token 余额不足 发送 /usage 获取更多Token!\n`
-        );
-      }
-    }
+
     let systemPrompt = '';
     if (body['systemPrompt']) {
       systemPrompt = body['systemPrompt'];
@@ -202,12 +195,6 @@ export class ChatGptAction extends WaiOpenAPIRoute {
     const msgDate = body['msgDate']
     const msgAskId = body['msgAskId']
     const msgAskDate = body['msgAskDate']
-    delete body['systemPrompt'];
-    delete body['chatId'];
-    delete body['msgId'];
-    delete body['msgDate'];
-    delete body['msgAskId'];
-    delete body['msgAskDate'];
 
     body.messages.unshift({
       role: 'system',
@@ -219,6 +206,22 @@ export class ChatGptAction extends WaiOpenAPIRoute {
       }
     });
     const {authUserId} = this.getAuthSession();
+
+    if(!body.apiKey){
+      const balance = await this.getUserBalance()
+      if(balance <= 0){
+        return WaiOpenAPIRoute.responseData(
+            `\n您的Token 余额不足 发送 /usage 获取更多Token!\n`
+        );
+      }
+    }
+    delete body['systemPrompt'];
+    delete body['chatId'];
+    delete body['msgId'];
+    delete body['msgDate'];
+    delete body['msgAskId'];
+    delete body['msgAskDate'];
+
 
     try {
       if (body.stream) {

@@ -1,64 +1,61 @@
-import {kv} from '../../../env';
+import {kv, storage} from '../../../env';
 import {User} from "../User";
 import {MsgBotPublic} from "./MsgBotPublic";
+import {PbMsg_Type} from "../../../../lib/ptp/protobuf/PTPCommon/types";
+import {PbMsg} from "../../../../lib/ptp/protobuf/PTPCommon";
+import {Pdu} from "../../../../lib/ptp/protobuf/BaseMsg";
+import {Msg} from "./Msg";
 
 export class MsgBot {
   private chatId: string;
-  private senderId: string;
   private authUserId: string;
-  private msgId: number;
-  private msgDate: number;
-  private text: string;
-  constructor(authUserId:string,chatId: string, senderId: string,text:string,msgId:number,msgDate:number) {
+  private msg: PbMsg_Type;
+  constructor(authUserId:string,chatId: string, msg:PbMsg_Type) {
     this.chatId = chatId;
     this.authUserId = authUserId;
-    this.msgId = msgId;
-    this.msgDate = msgDate;
-    this.senderId = senderId;
-    this.text = text;
+    this.msg = msg;
   }
 
-
   static async getMsg(authUserId:string,chatId:string,msgId: number) {
-    const res = await kv.get(`wai/${authUserId}/msg/bot/${chatId}/${msgId}`);
-    return res ? JSON.parse(res) : null;
+    const res = await MsgBot.getMsgBuffer(authUserId,chatId,msgId);
+    return res ? PbMsg.parseMsg(new Pdu(res)) : null;
+  }
+
+  static async getMsgBuffer(authUserId:string,chatId:string,msgId: number) {
+    const res = await storage.get(`wai/${authUserId}/msg/bot/${chatId}/${msgId}`);
+    return res ? Buffer.from(res) : null;
   }
 
   async saveMsg() {
-    const { msgId,msgDate,chatId,text,senderId,authUserId } = this;
-    if(msgId){
-      const rowsStr = await kv.get(`wai/${authUserId}/msg/bot/${chatId}/rows`);
-      const rows = rowsStr ? JSON.parse(rowsStr) : []
-      if(!rows.includes(msgId) && msgId){
-        rows.push(msgId)
-        rows.sort((a,b)=>b-a)
-        await MsgBot.saveMsgIds(authUserId,chatId,rows)
-      }
-      await kv.put(`wai/${authUserId}/msg/bot/${chatId}/${msgId}`,JSON.stringify({
-        msgId,msgDate,chatId,senderId,text
-      }));
-      if(await User.getBotIsPublic(chatId)){
-        if(await User.getBotOwnerUserID(chatId) === authUserId){
-          await new MsgBotPublic(chatId,senderId,text,msgId,msgDate).saveMsg()
-        }
+    const { msg,chatId,authUserId } = this;
+    const rows = await MsgBot.getMsgIds(authUserId,chatId);
+    if(!rows.includes(msg.id)){
+      rows.push(msg.id)
+      await MsgBot.saveMsgIds(authUserId,chatId,rows)
+    }
+    await storage.put(`wai/${authUserId}/msg/bot/${chatId}/${msg.id}`,Buffer.from(new PbMsg(msg).pack().getPbData()))
+
+    if(await User.getBotIsPublic(chatId)){
+      if(await User.getBotOwnerUserID(chatId) === authUserId){
+        await new MsgBotPublic(chatId,msg).saveMsg()
       }
     }
   }
   static async saveMsgIds(authUserId:string,chatId:string,msgIds:number[]) {
     await kv.put(`wai/${authUserId}/msg/bot/${chatId}/rows`,JSON.stringify(msgIds));
   }
+
   static async getMsgIds(authUserId:string,chatId:string) {
     const rowsStr = await kv.get(`wai/${authUserId}/msg/bot/${chatId}/rows`);
     return rowsStr ? JSON.parse(rowsStr) : []
   }
 
-  async deleteMsg(msgId: number) {
-    const { chatId,authUserId } = this;
-    await kv.delete(`wai/${authUserId}/msg/bot/${chatId}/${msgId}`);
+  static async deleteMsg(authUserId:string,chatId:string,msgId: number) {
+    await storage.delete(`wai/${authUserId}/msg/bot/${chatId}/${msgId}`);
     let rows = await MsgBot.getMsgIds(authUserId,chatId) as number[]
     if(rows.indexOf(msgId) > -1){
       rows = rows.filter(id=>id !== msgId)
     }
-    await kv.put(`wai/${authUserId}/msg/bot/${chatId}/rows`,JSON.stringify(rows));
+    await MsgBot.saveMsgIds(authUserId,chatId,rows)
   }
 }

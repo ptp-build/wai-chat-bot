@@ -1,6 +1,6 @@
 import { ActionCommands, getActionCommandsName } from '../../../lib/ptp/protobuf/ActionCommands';
 import { Pdu } from '../../../lib/ptp/protobuf/BaseMsg';
-import { AuthSessionType, getSessionInfoFromSign } from './User';
+import {AuthSessionType, getSessionInfoFromSign, User} from './User';
 import { AuthLoginReq, AuthLoginRes } from '../../../lib/ptp/protobuf/PTPAuth';
 import {
   SendBotMsgReq,
@@ -9,7 +9,7 @@ import {
   SendTextMsgReq,
 } from '../../../lib/ptp/protobuf/PTPMsg';
 import { ERR, UserStoreData_Type } from '../../../lib/ptp/protobuf/PTPCommon/types';
-import { PbUser, UserStoreData } from '../../../lib/ptp/protobuf/PTPCommon';
+import {PbMsg, PbUser, UserStoreData} from '../../../lib/ptp/protobuf/PTPCommon';
 import { SyncReq, SyncRes, TopCatsReq, TopCatsRes } from '../../../lib/ptp/protobuf/PTPSync';
 import { ENV, kv, storage } from '../../env';
 import { requestOpenAi } from '../functions/openai';
@@ -78,11 +78,18 @@ export default class MsgDispatcher {
   async handleSendTextMsgReq(pdu: Pdu) {
     let req = SendTextMsgReq.parseMsg(pdu);
     const { authUserId } = this;
-    console.debug('handleSendTextMsgReq', req);
-    const { text, chatId, msgDate,msgId, replyToUserId } = req;
+    const msg = PbMsg.parseMsg(new Pdu(Buffer.from(req.msg!)));
+    if(msg.senderId === "1"){
+      msg.senderId = authUserId
+    }
+    console.debug('handleSendTextMsgReq',msg);
+    const text = msg.content.text?.text
+    const chatId = msg.chatId
+    const msgId = msg.id
+    const replyToUserId = msg.replyToUserId
     const res = await storage.get(`wai/users/${chatId}`);
     if (res) {
-      const chatOwnerUserId = await kv.get(`W_B_U_R_${chatId}`);
+      const chatOwnerUserId = await User.getBotOwnerUserID(chatId);
       if (chatOwnerUserId !== authUserId) {
         const user = PbUser.parseMsg(new Pdu(Buffer.from(res)));
         const tg = await new UserSetting(chatOwnerUserId).getValue(chatId + '/link/tg');
@@ -111,7 +118,7 @@ export default class MsgDispatcher {
           if (resDo.status === 404) {
             new TelegramBot(tgToken)
               .replyButtons(
-                text,
+                text!,
                 [
                   [
                     {
@@ -141,7 +148,7 @@ export default class MsgDispatcher {
           });
           await ENV.DO_WEBSOCKET!.get(ENV.DO_WEBSOCKET!.idFromName('/ws')).fetch(request);
         }
-        await new MsgBot(authUserId,chatId,"1",text,msgId!,msgDate).saveMsg()
+        await new MsgBot(authUserId,chatId,msg).saveMsg()
       }
     }
 
@@ -276,35 +283,35 @@ export default class MsgDispatcher {
     });
   }
   async handleTopCatsReq(pdu: Pdu) {
-    const { time } = TopCatsReq.parseMsg(pdu);
-    const str = await kv.get('topCats-cn.json');
-
-    let topCats;
-    if (str) {
-      topCats = JSON.parse(str);
-    } else {
-      return;
-    }
-    let payload: any = {};
-    console.log('handleTopCatsReq', time, topCats.time, time < topCats.time);
-    if (time < topCats.time) {
-      payload = {
-        topSearchPlaceHolder: '编程 写作 旅游...',
-        cats: topCats.cats,
-      };
-    }
-    const bots: any[] = [];
-    topCats.bots.forEach(bot => {
-      if (bot.time > time) {
-        bots.push(bot);
-      }
-    });
-    if (bots.length > 0) {
-      payload.bots = bots;
-    }
+    // const { time } = TopCatsReq.parseMsg(pdu);
+    // const str = await kv.get('topCats-cn.json');
+    //
+    // let topCats;
+    // if (str) {
+    //   topCats = JSON.parse(str);
+    // } else {
+    //   return;
+    // }
+    // let payload: any = {};
+    // console.log('handleTopCatsReq', time, topCats.time, time < topCats.time);
+    // if (time < topCats.time) {
+    //   payload = {
+    //     topSearchPlaceHolder: '编程 写作 旅游...',
+    //     cats: topCats.cats,
+    //   };
+    // }
+    // const bots: any[] = [];
+    // topCats.bots.forEach(bot => {
+    //   if (bot.time > time) {
+    //     bots.push(bot);
+    //   }
+    // });
+    // if (bots.length > 0) {
+    //   payload.bots = bots;
+    // }
     this.sendPdu(
       new TopCatsRes({
-        payload: JSON.stringify(payload),
+        // payload: JSON.stringify(payload),
       }).pack(),
       pdu.getSeqNum()
     );

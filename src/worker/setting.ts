@@ -1,7 +1,7 @@
 import { PbChatGptModelConfig_Type } from '../lib/ptp/protobuf/PTPCommon/types';
 
-export const SERVER_USER_ID_START = '20000000';
-export const SERVER_BOT_USER_ID_START = '10000000';
+export const SERVER_USER_ID_START = '20000';
+export const SERVER_BOT_USER_ID_START = '10000';
 
 export const UserIdFirstBot = '1000';
 export const UserIdCnPrompt = '1010';

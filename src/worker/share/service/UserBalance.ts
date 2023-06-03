@@ -36,9 +36,6 @@ export default class UserBalance {
     const newTotalSpend = totalSpend + amount;
     await kv.put(`${BALANCE_TOKENS_KEY}_${this.authUserId}`, newBalance.toString());
     await kv.put(`${TOTAL_SPEND_TOKENS_KEY}_${this.authUserId}`, newTotalSpend.toString());
-    if (balance < amount) {
-      throw new Error('Insufficient Tokens');
-    }
   }
   async getBalance() {
     const str = await kv.get(`${BALANCE_TOKENS_KEY}_${this.authUserId}`);
